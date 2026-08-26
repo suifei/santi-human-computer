@@ -14,13 +14,16 @@
 <p align="center">
   <a href="https://santi.ok.kimi.link"><strong>打开演算场</strong></a>
   ·
+  <a href="https://suifei.github.io/santi-human-computer/">GitHub Pages</a>
+  ·
   <a href="https://santi.ok.kimi.link/principle">原理</a>
   ·
   <a href="https://santi.ok.kimi.link/formation">阵图</a>
 </p>
 
 <p align="center">
-  <strong>直接访问：<a href="https://santi.ok.kimi.link">https://santi.ok.kimi.link</a></strong>
+  <strong>直接访问：<a href="https://santi.ok.kimi.link">https://santi.ok.kimi.link</a></strong><br/>
+  <strong>GitHub Pages：<a href="https://suifei.github.io/santi-human-computer/">https://suifei.github.io/santi-human-computer/</a></strong>
 </p>
 
 <p align="center">
@@ -28,9 +31,10 @@
   <img alt="10 位" src="https://img.shields.io/badge/位宽-10bit-B08A4F" />
   <img alt="React" src="https://img.shields.io/badge/React-19-A32E22" />
   <img alt="Three.js" src="https://img.shields.io/badge/Three.js-0.185-B08A4F" />
+  <img alt="pages" src="https://img.shields.io/github/actions/workflow/status/suifei/santi-human-computer/deploy-pages.yml?label=GitHub%20Pages" />
 </p>
 
-![人列方阵](app/public/principle-hero.png)
+![演算场：注入列机位，秦兵持红蓝旗](docs/screenshots/01-yard.png)
 
 ---
 
@@ -45,15 +49,21 @@
 
 输入 A、B、C 各 0–1023。注入后击鼓，看红蓝旗从南往北翻到输出手。
 
-![监军台与方阵](app/public/story-illustration.png)
+![演算场俯瞰：932 人按网表布阵](docs/screenshots/01-yard-top.png)
+
+推送到 `main` 会自动构建静态站点并发布到 GitHub Pages（与 kimi.link 同一份前端）。
 
 ## 三个入口
 
-| 页面 | 地址 | 内容 |
+| 页面 | kimi.link | GitHub Pages |
 | --- | --- | --- |
-| 演算场 | https://santi.ok.kimi.link | 全屏 3D 操场，输入令、鼓令、战果 |
-| 原理 | https://santi.ok.kimi.link/principle | 军规、四门、全加器、从加法到乘法 |
-| 阵图 | https://santi.ok.kimi.link/formation | 分区地图、名册、指令卡解剖、节拍轴 |
+| 演算场 | https://santi.ok.kimi.link | https://suifei.github.io/santi-human-computer/ |
+| 原理 | https://santi.ok.kimi.link/principle | https://suifei.github.io/santi-human-computer/principle |
+| 阵图 | https://santi.ok.kimi.link/formation | https://suifei.github.io/santi-human-computer/formation |
+
+![原理页](docs/screenshots/02-principle.png)
+
+![阵图页](docs/screenshots/03-formation.png)
 
 ## 演算场操作
 
@@ -108,4 +118,4 @@ npm install --replace-registry-host=always --registry https://registry.npmmirror
 
 Vite 7 · React 19 · TypeScript · Three.js / React Three Fiber · Zustand · Tailwind
 
-士兵用 InstancedMesh 画，932 人同一批绘制。
+士兵用 InstancedMesh 画，932 人同一批绘制。GitHub Pages 由 `.github/workflows/deploy-pages.yml` 在每次 `main` 推送后自动发布。
