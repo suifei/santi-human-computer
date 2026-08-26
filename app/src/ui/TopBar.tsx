@@ -18,7 +18,12 @@ export default function TopBar() {
       initial={{ y: -16, opacity: 0 }}
       animate={introDone ? { y: 0, opacity: 1 } : {}}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      style={{ background: 'linear-gradient(to bottom, rgba(23,16,11,0.72), rgba(23,16,11,0))' }}
+      style={{
+        background: 'rgba(23,16,11,0.82)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(176,138,79,0.35)',
+      }}
     >
       <div className="flex items-center gap-2.5">
         <img src={asset('logo-seal.svg')} alt="印章" width={28} height={28} className="rounded-sm" />

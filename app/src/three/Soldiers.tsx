@@ -31,12 +31,17 @@ function limb(a: THREE.Vector3, b: THREE.Vector3, r: number): THREE.CylinderGeom
   return g;
 }
 
+type FlagTexRef = { current: THREE.Texture | null };
+
 /** 通用着色器注入：待机摆动（全员）+ 翻旗/举杆（旗帜、旗杆） */
-function injectSoldierShader(opts: { isFlag?: boolean; isPole?: boolean }) {
-  return (shader: THREE.WebGLProgramParametersWithUniforms) => {
+function injectSoldierShader(
+  mat: THREE.MeshStandardMaterial,
+  opts: { isFlag?: boolean; isPole?: boolean; map2?: FlagTexRef },
+) {
+  mat.onBeforeCompile = (shader: THREE.WebGLProgramParametersWithUniforms) => {
     shader.uniforms.uTime = { value: 0 };
     shader.uniforms.uFlipDur = { value: 0.32 };
-    if (opts.isFlag) shader.uniforms.map2 = { value: null };
+    if (opts.isFlag) shader.uniforms.map2 = { value: opts.map2?.current ?? null };
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>
         attribute float aFlip; attribute float aVal; attribute float aPrev; attribute float aLift;
@@ -82,11 +87,9 @@ function injectSoldierShader(opts: { isFlag?: boolean; isPole?: boolean }) {
           vec4 sampledDiffuseColor = mix(tB, tR, vFlagMix);
           diffuseColor *= sampledDiffuseColor;
         #endif` : '#include <map_fragment>');
-    shaderRefs.push(shader);
+    mat.userData.shader = shader;
   };
 }
-
-const shaderRefs: THREE.WebGLProgramParametersWithUniforms[] = [];
 
 export default function Soldiers() {
   const netlist = useSim((s) => s.netlist);
@@ -176,6 +179,10 @@ export default function Soldiers() {
 
   /* ---------- 实例矩阵：站位 + 朝向 ---------- */
   useLayoutEffect(() => {
+    const meshes = [bodyRef.current, headRef.current, poleRef.current, flagRef.current].filter(
+      (mesh): mesh is THREE.InstancedMesh => mesh != null,
+    );
+    if (meshes.length < 4) return;
     const m = new THREE.Matrix4();
     const q = new THREE.Quaternion();
     const up = new THREE.Vector3(0, 1, 0);
@@ -191,39 +198,54 @@ export default function Soldiers() {
       const s = 0.97 + ((Math.sin(i * 78.233) * 12543.7 % 1 + 1) % 1) * 0.06;
       sc.set(s, s, s);
       m.compose(new THREE.Vector3(x, 0, z), q, sc);
-      for (const ref of [bodyRef, headRef, poleRef, flagRef]) ref.current.setMatrixAt(i, m);
+      for (const mesh of meshes) mesh.setMatrixAt(i, m);
     });
-    for (const ref of [bodyRef, headRef, poleRef, flagRef]) ref.current.instanceMatrix.needsUpdate = true;
+    for (const mesh of meshes) mesh.instanceMatrix.needsUpdate = true;
   }, [netlist]);
 
-  /* ---------- 材质 ---------- */
-  const [fontsReady, setFontsReady] = useState(false);
-  useEffect(() => { waitAppFonts().then(() => setFontsReady(true)); }, []);
-  const flagTexRed = useMemo(() => makeFlagTexture(true), [fontsReady]);
-  const flagTexBlue = useMemo(() => makeFlagTexture(false), [fontsReady]);
+  /* ---------- 材质（只建一次；字体就绪后就地换旗面，避免拆 InstancedMesh） ---------- */
+  const flagTexBlueRef = useRef<THREE.Texture | null>(null);
   const mats = useMemo(() => {
-    shaderRefs.length = 0;
+    const red = makeFlagTexture(true);
+    const blue = makeFlagTexture(false);
+    flagTexBlueRef.current = blue;
     const std = (extra?: { isPole?: boolean }) => {
       const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0.1 });
-      mat.onBeforeCompile = injectSoldierShader({ isPole: extra?.isPole });
+      injectSoldierShader(mat, { isPole: extra?.isPole });
       return mat;
     };
     const flagMat = new THREE.MeshStandardMaterial({
-      map: flagTexRed, side: THREE.DoubleSide, roughness: 0.9, metalness: 0,
+      map: red, side: THREE.DoubleSide, roughness: 0.9, metalness: 0,
       emissive: new THREE.Color('#201408'), emissiveIntensity: 0.2,
     });
-    flagMat.onBeforeCompile = (shader) => {
-      injectSoldierShader({ isFlag: true })(shader);
-      shader.uniforms.map2.value = flagTexBlue;
-    };
+    injectSoldierShader(flagMat, { isFlag: true, map2: flagTexBlueRef });
     return { body: std(), head: std(), pole: std({ isPole: true }), flag: flagMat };
-  }, [flagTexRed, flagTexBlue]);
+  }, []);
+
+  const [fontsReady, setFontsReady] = useState(false);
+  useEffect(() => { waitAppFonts().then(() => setFontsReady(true)); }, []);
+  useEffect(() => {
+    if (!fontsReady) return;
+    const red = makeFlagTexture(true);
+    const blue = makeFlagTexture(false);
+    const prevMap = mats.flag.map;
+    const prevBlue = flagTexBlueRef.current;
+    flagTexBlueRef.current = blue;
+    mats.flag.map = red;
+    mats.flag.needsUpdate = true;
+    const shader = mats.flag.userData.shader as THREE.WebGLProgramParametersWithUniforms | undefined;
+    if (shader?.uniforms.map2) shader.uniforms.map2.value = blue;
+    if (prevMap && prevMap !== red) prevMap.dispose();
+    if (prevBlue && prevBlue !== blue) prevBlue.dispose();
+  }, [fontsReady, mats]);
 
   /* ---------- 着色器时钟 ---------- */
   useFrame(() => {
     const t = now();
     const flipFast = useSim.getState().flipFast;
-    for (const s of shaderRefs) {
+    for (const mat of [mats.body, mats.head, mats.pole, mats.flag]) {
+      const s = mat.userData.shader as THREE.WebGLProgramParametersWithUniforms | undefined;
+      if (!s) continue;
       s.uniforms.uTime.value = t;
       s.uniforms.uFlipDur.value = flipFast ? 0.12 : 0.32;
     }
