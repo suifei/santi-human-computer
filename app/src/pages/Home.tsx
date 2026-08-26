@@ -132,7 +132,7 @@ export default function Home() {
         {!isMobile && (
           <>
             <motion.div
-              className="pointer-events-auto absolute left-4 top-20"
+              className="pointer-events-auto absolute bottom-28 left-4 top-20 flex min-h-0"
               initial={{ x: -24, opacity: 0 }}
               animate={introDone ? { x: 0, opacity: 1 } : {}}
               transition={{ duration: 0.45, delay: 3.3, ease: [0.22, 1, 0.36, 1] }}
@@ -140,7 +140,7 @@ export default function Home() {
               <InputPanel />
             </motion.div>
             <motion.div
-              className="pointer-events-auto absolute right-4 top-20"
+              className="pointer-events-auto absolute right-4 top-20 flex max-h-[calc(100%-7.5rem)]"
               initial={{ x: 24, opacity: 0 }}
               animate={introDone ? { x: 0, opacity: 1 } : {}}
               transition={{ duration: 0.45, delay: 3.3, ease: [0.22, 1, 0.36, 1] }}

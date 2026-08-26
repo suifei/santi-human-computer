@@ -11,6 +11,7 @@ export default function DrumConsole() {
   const status = useSim((s) => s.status);
   const tick = useSim((s) => s.tick);
   const maxLayer = useSim((s) => s.netlist.maxLayer);
+  const gateN = useSim((s) => s.netlist.stats.total);
   const speed = useSim((s) => s.speed);
   const drumPulse = useSim((s) => s.drumPulse);
   const toggleRun = useSim((s) => s.toggleRun);
@@ -73,6 +74,7 @@ export default function DrumConsole() {
         <div className="font-mono text-[16px]" style={{ color: 'var(--gold)' }}>
           第 {tick} / {maxLayer} 拍
         </div>
+        <div className="text-[11px]" style={{ color: 'var(--earth-300)' }}>{gateN} 门</div>
         <div className="mt-1.5 h-[3px] w-full rounded-sm" style={{ background: 'var(--earth-700)' }}>
           <div
             className="h-full rounded-sm transition-[width] duration-200"

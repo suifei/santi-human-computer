@@ -55,17 +55,18 @@ export function makePlateAtlas(gates: Gate[]): { tex: THREE.CanvasTexture; cells
   const g = cv.getContext('2d')!;
   g.fillStyle = '#3A2C1D';
   g.fillRect(0, 0, S, S);
-  for (const gate of gates) {
-    const i = gate.index;
+  for (let i = 0; i < gates.length; i++) {
+    const gate = gates[i];
     const cx = (i % COLS) * CELL, cy = Math.floor(i / COLS) * CELL;
     g.strokeStyle = 'rgba(176,138,79,0.4)';
     g.lineWidth = 2;
     g.strokeRect(cx + 4, cy + 4, CELL - 8, CELL - 8);
     g.fillStyle = '#C9B18A';
-    g.font = `500 ${gate.id < 100 ? 34 : 28}px "JetBrains Mono", monospace`;
+    const label = gate.id < 1000 ? String(gate.id).padStart(3, '0') : String(gate.id);
+    g.font = `500 ${label.length > 3 ? 22 : gate.id < 100 ? 34 : 28}px "JetBrains Mono", monospace`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
-    g.fillText(String(gate.id).padStart(3, '0'), cx + CELL / 2, cy + CELL / 2 + 2);
+    g.fillText(label, cx + CELL / 2, cy + CELL / 2 + 2);
   }
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;

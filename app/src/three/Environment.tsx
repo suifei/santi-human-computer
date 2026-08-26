@@ -58,21 +58,38 @@ function SkyDome() {
 /* ================= 地面 + 地格 + 区块金线 ================= */
 function Ground() {
   const tex = useLoader(THREE.TextureLoader, asset('ground-rammed-earth.jpg'));
+  const bounds = useSim((s) => s.netlist.bounds);
+  const classic = useSim((s) => s.bits === 10 && s.expr === '(A+B)*C');
+  const spanX = Math.max(40, bounds.maxX - bounds.minX);
+  const spanZ = Math.max(40, bounds.maxZ - bounds.minZ);
+  const span = Math.max(spanX, spanZ);
+  const pad = Math.max(80, span * 0.5);
+  const width = spanX + pad * 2;
+  const depth = spanZ + pad * 2;
+  const coverW = Math.max(width * 2.4, 320);
+  const coverD = Math.max(depth * 2.4, 320);
+  const cx = Number.isFinite(bounds.minX) ? (bounds.minX + bounds.maxX) / 2 : 0;
+  const cz = Number.isFinite(bounds.minZ) ? (bounds.minZ + bounds.maxZ) / 2 : 0;
   useEffect(() => {
     // eslint-disable-next-line react-hooks/immutability -- three.js 纹理属性需就地设置
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(8, 6);
+    tex.repeat.set(Math.max(10, coverW / 8), Math.max(8, coverD / 8));
     tex.colorSpace = THREE.SRGBColorSpace;
-  }, [tex]);
+  }, [tex, coverW, coverD]);
 
   const grid = useMemo(() => {
+    const step = span > 90 ? 2 : 1;
+    const x0 = Math.floor((cx - coverW / 2) / step) * step;
+    const x1 = Math.ceil((cx + coverW / 2) / step) * step;
+    const z0 = Math.floor((cz - coverD / 2) / step) * step;
+    const z1 = Math.ceil((cz + coverD / 2) / step) * step;
     const pts: number[] = [];
-    for (let x = -26; x <= 27; x++) pts.push(x, 0.015, -19, x, 0.015, 21);
-    for (let z = -19; z <= 21; z++) pts.push(-26, 0.015, z, 27, 0.015, z);
+    for (let x = x0; x <= x1; x += step) pts.push(x, 0.015, z0, x, 0.015, z1);
+    for (let z = z0; z <= z1; z += step) pts.push(x0, 0.015, z, x1, 0.015, z);
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
     return g;
-  }, []);
+  }, [cx, cz, coverW, coverD, span]);
 
   const zoneLines = useMemo(() => {
     const rects: [number, number, number, number][] = [
@@ -94,21 +111,23 @@ function Ground() {
 
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[64, 48]} />
+      <mesh
+        key={`earth-${coverW.toFixed(0)}-${coverD.toFixed(0)}-${cx.toFixed(0)}-${cz.toFixed(0)}`}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[cx, 0, cz]}
+        receiveShadow
+      >
+        <planeGeometry args={[coverW, coverD]} />
         <meshStandardMaterial map={tex} roughness={1} metalness={0} color="#EFE6D2" />
-      </mesh>
-      {/* 操场外圈沙地延伸至晨霭中 */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}>
-        <planeGeometry args={[500, 500]} />
-        <meshStandardMaterial color="#B3A183" roughness={1} />
       </mesh>
       <lineSegments geometry={grid}>
         <lineBasicMaterial color="#6E5C3E" transparent opacity={0.28} />
       </lineSegments>
-      <lineSegments geometry={zoneLines}>
-        <lineBasicMaterial color="#C09A3E" transparent opacity={0.55} />
-      </lineSegments>
+      {classic && (
+        <lineSegments geometry={zoneLines}>
+          <lineBasicMaterial color="#C09A3E" transparent opacity={0.55} />
+        </lineSegments>
+      )}
     </group>
   );
 }
@@ -122,9 +141,11 @@ const SIGNS: { text: string; pos: [number, number]; rotY: number }[] = [
 ];
 
 function ZoneSigns() {
+  const classic = useSim((s) => s.bits === 10 && s.expr === '(A+B)*C');
   const [fontsReady, setFontsReady] = useState(false);
   useEffect(() => { waitAppFonts().then(() => setFontsReady(true)); }, []);
   const textures = useMemo(() => SIGNS.map((s) => makeSignTexture(s.text)), [fontsReady]);
+  if (!classic) return null;
   return (
     <group>
       {SIGNS.map((s, i) => (

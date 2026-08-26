@@ -6,17 +6,24 @@ import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import gsap from 'gsap';
 import { useSim, activeLayerCentroid, type Preset } from '@/sim/store';
+import type { FieldBounds } from '@/sim/netlist';
 import { distantDrum } from '@/sim/audio';
 
 const now = () => performance.now() / 1000;
 
-const PRESETS: Record<Exclude<Preset, 'follow'>, { pos: [number, number, number]; tgt: [number, number, number] }> = {
-  overview: { pos: [38, 30, 42], tgt: [0, 0.8, 0] },
-  top: { pos: [0.1, 58, 0.1], tgt: [0, 0, 0] },
-  input: { pos: [-22, 2.4, 26], tgt: [-14, 1, 14] },
-  drum: { pos: [20, 4.5, 13], tgt: [-8, 1.2, -4] },
-  output: { pos: [16, 5, -26], tgt: [10, 1.2, -16] },
-};
+function presetsFromBounds(b: FieldBounds) {
+  const cx = (b.minX + b.maxX) / 2;
+  const cz = (b.minZ + b.maxZ) / 2;
+  const span = Math.max(b.maxX - b.minX, b.maxZ - b.minZ, 40);
+  const h = Math.max(30, span * 0.42);
+  return {
+    overview: { pos: [cx + span * 0.55, h, cz + span * 0.55] as [number, number, number], tgt: [cx, 0.8, cz] as [number, number, number] },
+    top: { pos: [cx + 0.1, Math.max(58, span * 0.75), cz + 0.1] as [number, number, number], tgt: [cx, 0, cz] as [number, number, number] },
+    input: { pos: [cx, 2.8, b.maxZ + 8] as [number, number, number], tgt: [cx, 1.15, b.maxZ - 1] as [number, number, number] },
+    drum: { pos: [cx + span * 0.25, 4.5, cz + span * 0.15] as [number, number, number], tgt: [cx, 1.2, cz] as [number, number, number] },
+    output: { pos: [b.maxX + 4, 5, b.minZ - 6] as [number, number, number], tgt: [cx, 1.2, b.minZ + 4] as [number, number, number] },
+  };
+}
 
 const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -27,8 +34,11 @@ export default function CameraRig() {
   const preset = useSim((s) => s.preset);
   const introDone = useSim((s) => s.introDone);
   const selectedId = useSim((s) => s.selectedId);
-  const shake = useRef({ t0: -10, off: new THREE.Vector3() });
   const drumPulse = useSim((s) => s.drumPulse);
+  const shake = useRef({ t0: -10, off: new THREE.Vector3() });
+  const bounds = useSim((s) => s.netlist.bounds);
+  const PRESETS = presetsFromBounds(bounds);
+  const span = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ, 40);
 
   const tweenTo = (pos: [number, number, number], tgt: [number, number, number], dur: number, ease: string) => {
     const c = controlsRef.current;
@@ -55,8 +65,19 @@ export default function CameraRig() {
     if (!introDone || preset === 'follow') return;
     const p = PRESETS[preset];
     tweenTo(p.pos, p.tgt, 1.2, 'power2.inOut');
+    camera.far = Math.max(900, span * 8);
+    camera.updateProjectionMatrix();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset]);
+
+  useEffect(() => {
+    if (!introDone) return;
+    camera.far = Math.max(900, span * 8);
+    camera.updateProjectionMatrix();
+    const fog = scene.fog as THREE.FogExp2 | null;
+    if (fog) fog.density = span > 80 ? 0.0035 : 0.006;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [span]);
 
   /* 点选士兵：向其 dolly */
   useEffect(() => {
@@ -101,7 +122,7 @@ export default function CameraRig() {
   /* 快捷键 1–5 / F / 空格 / Esc */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
       const st = useSim.getState();
       const map: Record<string, Preset> = { '1': 'overview', '2': 'top', '3': 'input', '4': 'drum', '5': 'output' };
       if (map[e.key]) st.setPreset(map[e.key]);
@@ -119,7 +140,7 @@ export default function CameraRig() {
       enableDamping
       dampingFactor={0.08}
       minDistance={6}
-      maxDistance={120}
+      maxDistance={Math.max(120, span * 2.4)}
       maxPolarAngle={1.45}
       target={[0, 0.8, 0]}
     />

@@ -108,4 +108,9 @@
     box-shadow: 0 4px 16px rgba(23, 16, 11, 0.35);
   }
   .ember-glow { box-shadow: 0 0 24px rgba(255, 140, 66, 0.35); }
+  .panel ::-webkit-scrollbar { width: 6px; }
+  .panel ::-webkit-scrollbar-thumb {
+    background: rgba(176, 138, 79, 0.45);
+    border-radius: 3px;
+  }
 }

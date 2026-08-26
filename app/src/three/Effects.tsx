@@ -12,9 +12,13 @@ const now = () => performance.now() / 1000;
 /* ================= 门牌号地贴（单张图集 + InstancedMesh） ================= */
 function DoorPlates() {
   const netlist = useSim((s) => s.netlist);
-  const n = netlist.gates.length;
+  const plated = useMemo(() => {
+    if (netlist.gates.length <= 1024) return netlist.gates;
+    return netlist.gates.filter((g) => g.type === 'INPUT' || g.type === 'OUTPUT' || g.type === 'DONE');
+  }, [netlist]);
+  const n = plated.length;
   const ref = useRef<THREE.InstancedMesh>(null!);
-  const { tex, cells } = useMemo(() => makePlateAtlas(netlist.gates), [netlist]);
+  const { tex, cells } = useMemo(() => makePlateAtlas(plated), [plated]);
 
   const geom = useMemo(() => {
     const g = new THREE.PlaneGeometry(0.6, 0.3);
@@ -54,23 +58,23 @@ function DoorPlates() {
 
   useFrame(() => {
     const st = useSim.getState();
-    const hoverIdx = st.hoveredId !== null ? st.netlist.byId.get(st.hoveredId)?.index ?? -1 : -1;
-    const selIdx = st.selectedId !== null ? st.netlist.byId.get(st.selectedId)?.index ?? -1 : -1;
+    const hoverSlot = st.hoveredId !== null ? plated.findIndex((g) => g.id === st.hoveredId) : -1;
+    const selSlot = st.selectedId !== null ? plated.findIndex((g) => g.id === st.selectedId) : -1;
     // eslint-disable-next-line react-hooks/immutability -- three.js uniform 需就地更新
-    mat.uniforms.uHover.value = hoverIdx;
-    mat.uniforms.uSelect.value = selIdx;
+    mat.uniforms.uHover.value = hoverSlot;
+    mat.uniforms.uSelect.value = selSlot;
   });
 
   useEffect(() => {
     const m = new THREE.Matrix4();
-    netlist.gates.forEach((gate, i) => {
+    plated.forEach((gate, i) => {
       m.makeTranslation(gate.pos[0], 0.012, gate.pos[1] - 0.5);
       ref.current.setMatrixAt(i, m);
     });
     ref.current.instanceMatrix.needsUpdate = true;
-  }, [netlist]);
+  }, [plated]);
 
-  return <instancedMesh ref={ref} args={[geom, mat, n]} />;
+  return <instancedMesh key={`${netlist.expr}-${netlist.bits}-${n}`} ref={ref} args={[geom, mat, n]} />;
 }
 
 /* ================= 波前光带 ================= */

@@ -9,8 +9,42 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { useSim } from '@/sim/store';
 import { makeFlagTexture } from './textures';
 import { waitAppFonts } from '@/lib/fonts';
+import type { Gate } from '@/sim/netlist';
 
 const now = () => performance.now() / 1000;
+
+function placeGate(gate: Gate, i: number) {
+  const [x, z] = gate.pos;
+  let rotY = Math.PI;
+  if (gate.zone === 'C') rotY = Math.PI / 2;
+  if (gate.zone === 'DONE') rotY = -Math.PI / 2;
+  rotY += (Math.sin(i * 12.9898) * 43758.5453 % 1) * 0.06;
+  const s = 0.97 + ((Math.sin(i * 78.233) * 12543.7 % 1 + 1) % 1) * 0.06;
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotY);
+  m.compose(new THREE.Vector3(x, 0, z), q, new THREE.Vector3(s, s, s));
+  return m;
+}
+
+function makeInstAttrs(count: number) {
+  return {
+    aVal: new THREE.InstancedBufferAttribute(new Float32Array(count), 1),
+    aPrev: new THREE.InstancedBufferAttribute(new Float32Array(count), 1),
+    aFlip: new THREE.InstancedBufferAttribute(new Float32Array(count).fill(-100), 1),
+    aLift: new THREE.InstancedBufferAttribute(new Float32Array(count).fill(-100), 1),
+    aLiftPole: new THREE.InstancedBufferAttribute(new Float32Array(count).fill(-100), 1),
+  };
+}
+
+function writeGroup(meshes: (THREE.InstancedMesh | null)[], gates: Gate[]) {
+  const live = meshes.filter((m): m is THREE.InstancedMesh => m != null);
+  if (!live.length) return;
+  gates.forEach((gate, i) => {
+    const m = placeGate(gate, gate.index);
+    for (const mesh of live) mesh.setMatrixAt(i, m);
+  });
+  for (const mesh of live) mesh.instanceMatrix.needsUpdate = true;
+}
 
 function colored(geom: THREE.BufferGeometry, hex: string): THREE.BufferGeometry {
   const c = new THREE.Color(hex);
@@ -96,11 +130,37 @@ export default function Soldiers() {
   const commitNonce = useSim((s) => s.commitNonce);
   const resetNonce = useSim((s) => s.resetNonce);
   const n = netlist.gates.length;
+  const LOD_AT = 1800;
+  const hero = useMemo(
+    () => (n > LOD_AT
+      ? netlist.gates.filter((g) => g.type === 'INPUT' || g.type === 'OUTPUT' || g.type === 'DONE')
+      : netlist.gates),
+    [netlist, n],
+  );
+  const lod = useMemo(
+    () => (n > LOD_AT
+      ? netlist.gates.filter((g) => g.type !== 'INPUT' && g.type !== 'OUTPUT' && g.type !== 'DONE')
+      : []),
+    [netlist, n],
+  );
+  const heroIndex = useMemo(() => {
+    const m = new Map<number, number>();
+    hero.forEach((g, i) => m.set(g.index, i));
+    return m;
+  }, [hero]);
+  const lodIndex = useMemo(() => {
+    const m = new Map<number, number>();
+    lod.forEach((g, i) => m.set(g.index, i));
+    return m;
+  }, [lod]);
 
   const bodyRef = useRef<THREE.InstancedMesh>(null!);
   const headRef = useRef<THREE.InstancedMesh>(null!);
   const poleRef = useRef<THREE.InstancedMesh>(null!);
   const flagRef = useRef<THREE.InstancedMesh>(null!);
+  const lodBodyRef = useRef<THREE.InstancedMesh>(null);
+  const lodPoleRef = useRef<THREE.InstancedMesh>(null);
+  const lodFlagRef = useRef<THREE.InstancedMesh>(null);
 
   /* ---------- 几何：拟人秦卒 ----------
    * 比例：总高 ~1.76m，头高 ~0.24m（约 1/7.5）。
@@ -157,51 +217,32 @@ export default function Soldiers() {
       colored(new THREE.SphereGeometry(0.05, 6, 5).translate(0.224, 1.36, 0.01), SKIN),
     ])!;
     const flag = new THREE.PlaneGeometry(0.55, 0.38, 6, 2).translate(0.22 + 0.275, 2.26, 0);
-    return { body, head, pole, flag };
+    const flagLod = new THREE.PlaneGeometry(0.55, 0.38, 4, 1).translate(0.22 + 0.275, 2.26, 0);
+    const bodyLod = colored(new THREE.BoxGeometry(0.34, 1.38, 0.24).translate(0, 0.72, 0), ARMOR);
+    const poleLod = colored(new THREE.CylinderGeometry(0.016, 0.016, 1.9, 5).translate(0.22, 1.65, 0), '#4A3726');
+    return { body, head, pole, flag, flagLod, bodyLod, poleLod };
   }, []);
 
-  /* ---------- 实例属性（旗帜/旗杆翻转动画状态） ---------- */
-  const attrs = useMemo(() => ({
-    aVal: new THREE.InstancedBufferAttribute(new Float32Array(n), 1),
-    aPrev: new THREE.InstancedBufferAttribute(new Float32Array(n), 1),
-    aFlip: new THREE.InstancedBufferAttribute(new Float32Array(n).fill(-100), 1),
-    aLift: new THREE.InstancedBufferAttribute(new Float32Array(n).fill(-100), 1),
-    aLiftPole: new THREE.InstancedBufferAttribute(new Float32Array(n).fill(-100), 1),
-  }), [n]);
+  const attrsH = useMemo(() => makeInstAttrs(hero.length), [hero.length]);
+  const attrsL = useMemo(() => makeInstAttrs(Math.max(lod.length, 1)), [lod.length]);
 
   useLayoutEffect(() => {
-    geoms.flag.setAttribute('aVal', attrs.aVal);
-    geoms.flag.setAttribute('aPrev', attrs.aPrev);
-    geoms.flag.setAttribute('aFlip', attrs.aFlip);
-    geoms.flag.setAttribute('aLift', attrs.aLift);
-    geoms.pole.setAttribute('aLift', attrs.aLiftPole);
-  }, [geoms, attrs]);
+    geoms.flag.setAttribute('aVal', attrsH.aVal);
+    geoms.flag.setAttribute('aPrev', attrsH.aPrev);
+    geoms.flag.setAttribute('aFlip', attrsH.aFlip);
+    geoms.flag.setAttribute('aLift', attrsH.aLift);
+    geoms.pole.setAttribute('aLift', attrsH.aLiftPole);
+    geoms.flagLod.setAttribute('aVal', attrsL.aVal);
+    geoms.flagLod.setAttribute('aPrev', attrsL.aPrev);
+    geoms.flagLod.setAttribute('aFlip', attrsL.aFlip);
+    geoms.flagLod.setAttribute('aLift', attrsL.aLift);
+    geoms.poleLod.setAttribute('aLift', attrsL.aLiftPole);
+  }, [geoms, attrsH, attrsL]);
 
-  /* ---------- 实例矩阵：站位 + 朝向 ---------- */
   useLayoutEffect(() => {
-    const meshes = [bodyRef.current, headRef.current, poleRef.current, flagRef.current].filter(
-      (mesh): mesh is THREE.InstancedMesh => mesh != null,
-    );
-    if (meshes.length < 4) return;
-    const m = new THREE.Matrix4();
-    const q = new THREE.Quaternion();
-    const up = new THREE.Vector3(0, 1, 0);
-    const sc = new THREE.Vector3();
-    netlist.gates.forEach((gate, i) => {
-      const [x, z] = gate.pos;
-      // 朝向：全员面北（-Z）；C 列与 DONE 面场内
-      let rotY = Math.PI;
-      if (gate.zone === 'C') rotY = Math.PI / 2;
-      if (gate.zone === 'DONE') rotY = -Math.PI / 2;
-      rotY += (Math.sin(i * 12.9898) * 43758.5453 % 1) * 0.06;
-      q.setFromAxisAngle(up, rotY);
-      const s = 0.97 + ((Math.sin(i * 78.233) * 12543.7 % 1 + 1) % 1) * 0.06;
-      sc.set(s, s, s);
-      m.compose(new THREE.Vector3(x, 0, z), q, sc);
-      for (const mesh of meshes) mesh.setMatrixAt(i, m);
-    });
-    for (const mesh of meshes) mesh.instanceMatrix.needsUpdate = true;
-  }, [netlist]);
+    writeGroup([bodyRef.current, headRef.current, poleRef.current, flagRef.current], hero);
+    writeGroup([lodBodyRef.current, lodPoleRef.current, lodFlagRef.current], lod);
+  }, [netlist, hero, lod]);
 
   /* ---------- 材质（只建一次；字体就绪后就地换旗面，避免拆 InstancedMesh） ---------- */
   const flagTexBlueRef = useRef<THREE.Texture | null>(null);
@@ -258,56 +299,81 @@ export default function Soldiers() {
     const t = now();
     const fast = st.flipFast;
     let outSeq = 0;
+    const bump = (
+      attrs: typeof attrsH,
+      inst: number,
+      v: number,
+      delay: number,
+    ) => {
+      if (attrs.aVal.array[inst] === v) return;
+      attrs.aPrev.array[inst] = attrs.aVal.array[inst];
+      attrs.aVal.array[inst] = v;
+      attrs.aFlip.array[inst] = t + delay;
+      attrs.aLift.array[inst] = t + delay;
+      attrs.aLiftPole.array[inst] = t + delay;
+    };
     for (const idx of st.changed) {
       const gate = st.netlist.gates[idx];
       const v = st.values[idx];
-      if (attrs.aVal.array[idx] === v) continue;
-      attrs.aPrev.array[idx] = attrs.aVal.array[idx];
-      attrs.aVal.array[idx] = v;
-      // 输出手集体亮相：自西向东 60ms stagger；同层其余 0–60ms 随机错拍
-      const delay = gate.type === 'OUTPUT' ? outSeq++ * 0.06 : Math.random() * 0.06;
-      attrs.aFlip.array[idx] = t + (fast ? 0 : delay);
-      attrs.aLift.array[idx] = t + (fast ? 0 : delay);
-      attrs.aLiftPole.array[idx] = t + (fast ? 0 : delay);
+      const delay = gate.type === 'OUTPUT' ? outSeq++ * 0.06 : (fast ? 0 : Math.random() * 0.06);
+      const hi = heroIndex.get(idx);
+      if (hi !== undefined) bump(attrsH, hi, v, delay);
+      const li = lodIndex.get(idx);
+      if (li !== undefined) bump(attrsL, li, v, delay);
     }
-    for (const a of [attrs.aVal, attrs.aPrev, attrs.aFlip, attrs.aLift, attrs.aLiftPole]) a.needsUpdate = true;
+    for (const a of [attrsH, attrsL]) {
+      for (const x of [a.aVal, a.aPrev, a.aFlip, a.aLift, a.aLiftPole]) x.needsUpdate = true;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commitNonce]);
 
-  /* ---------- 复位：自西北角向东南 8ms/m stagger 翻蓝 ---------- */
   useEffect(() => {
     if (resetNonce === 0) return;
-    const st = useSim.getState();
     const t = now();
-    st.netlist.gates.forEach((gate, i) => {
-      if (attrs.aVal.array[i] === 0) { attrs.aPrev.array[i] = 0; return; }
-      const [x, z] = gate.pos;
-      const dist = Math.hypot(x + 32, z + 24);
-      attrs.aPrev.array[i] = attrs.aVal.array[i];
-      attrs.aVal.array[i] = 0;
-      attrs.aFlip.array[i] = t + dist * 0.008;
-      attrs.aLift.array[i] = t + dist * 0.008;
-      attrs.aLiftPole.array[i] = t + dist * 0.008;
-    });
-    for (const a of [attrs.aVal, attrs.aPrev, attrs.aFlip, attrs.aLift, attrs.aLiftPole]) a.needsUpdate = true;
+    const resetGroup = (gates: Gate[], attrs: typeof attrsH) => {
+      gates.forEach((gate, i) => {
+        if (attrs.aVal.array[i] === 0) { attrs.aPrev.array[i] = 0; return; }
+        const [x, z] = gate.pos;
+        const dist = Math.hypot(x + 32, z + 24);
+        attrs.aPrev.array[i] = attrs.aVal.array[i];
+        attrs.aVal.array[i] = 0;
+        attrs.aFlip.array[i] = t + dist * 0.008;
+        attrs.aLift.array[i] = t + dist * 0.008;
+        attrs.aLiftPole.array[i] = t + dist * 0.008;
+      });
+      for (const a of [attrs.aVal, attrs.aPrev, attrs.aFlip, attrs.aLift, attrs.aLiftPole]) a.needsUpdate = true;
+    };
+    resetGroup(hero, attrsH);
+    if (lod.length) resetGroup(lod, attrsL);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetNonce]);
 
-  /* ---------- 拾取 ---------- */
   const hover = useSim((s) => s.hover);
   const select = useSim((s) => s.select);
 
   return (
-    <group>
+    <group key={`${netlist.expr}-${netlist.bits}-${n}`}>
       <instancedMesh
-        ref={bodyRef} args={[geoms.body, mats.body, n]} castShadow receiveShadow
-        onPointerMove={(e) => { e.stopPropagation(); hover(netlist.gates[e.instanceId!].id); }}
-        onPointerDown={(e) => { e.stopPropagation(); select(netlist.gates[e.instanceId!].id); }}
+        ref={bodyRef} args={[geoms.body, mats.body, hero.length]} castShadow receiveShadow
+        onPointerMove={(e) => { e.stopPropagation(); hover(hero[e.instanceId!].id); }}
+        onPointerDown={(e) => { e.stopPropagation(); select(hero[e.instanceId!].id); }}
         onPointerOut={() => hover(null)}
       />
-      <instancedMesh ref={headRef} args={[geoms.head, mats.head, n]} castShadow />
-      <instancedMesh ref={poleRef} args={[geoms.pole, mats.pole, n]} />
-      <instancedMesh ref={flagRef} args={[geoms.flag, mats.flag, n]} castShadow />
+      <instancedMesh ref={headRef} args={[geoms.head, mats.head, hero.length]} castShadow />
+      <instancedMesh ref={poleRef} args={[geoms.pole, mats.pole, hero.length]} />
+      <instancedMesh ref={flagRef} args={[geoms.flag, mats.flag, hero.length]} castShadow />
+      {lod.length > 0 && (
+        <>
+          <instancedMesh
+            ref={lodBodyRef} args={[geoms.bodyLod, mats.body, lod.length]}
+            onPointerMove={(e) => { e.stopPropagation(); hover(lod[e.instanceId!].id); }}
+            onPointerDown={(e) => { e.stopPropagation(); select(lod[e.instanceId!].id); }}
+            onPointerOut={() => hover(null)}
+          />
+          <instancedMesh ref={lodPoleRef} args={[geoms.poleLod, mats.pole, lod.length]} />
+          <instancedMesh ref={lodFlagRef} args={[geoms.flagLod, mats.flag, lod.length]} />
+        </>
+      )}
     </group>
   );
 }
