@@ -1,5 +1,5 @@
 /** 环境：天空穹顶、夯土地面与地格、区域木牌、远景营帐、鼓台、监军台、火把（白昼场景） */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -142,9 +142,51 @@ const SIGNS: { text: string; pos: [number, number]; rotY: number }[] = [
 
 function ZoneSigns() {
   const classic = useSim((s) => s.bits === 10 && s.expr === '(A+B)*C');
+  const cpu = useSim((s) => s.netlist.cpu);
+  const gates = useSim((s) => s.netlist.gates);
   const [fontsReady, setFontsReady] = useState(false);
   useEffect(() => { waitAppFonts().then(() => setFontsReady(true)); }, []);
-  const textures = useMemo(() => SIGNS.map((s) => makeSignTexture(s.text)), [fontsReady]);
+
+  const cpuSigns = useMemo(() => {
+    if (!cpu) return [];
+    const items: { text: string; pos: [number, number] }[] = [];
+    const pick = (text: string, zone: string) => {
+      const gs = gates.filter((g) => g.zone === zone);
+      if (!gs.length) return;
+      let x = 0, z = 0;
+      for (const g of gs) { x += g.pos[0]; z += g.pos[1]; }
+      items.push({ text, pos: [x / gs.length - 2.2, z / gs.length] });
+    };
+    pick('寄存器', 'REG');
+    pick('比較陣', 'CMP');
+    pick('加法陣', 'ADDER');
+    pick('減法陣', 'SUB');
+    pick('乘法陣', 'PP');
+    pick('除法陣', 'DIV');
+    return items;
+  }, [cpu, gates]);
+
+  const texturesClassic = useMemo(() => SIGNS.map((s) => makeSignTexture(s.text)), [fontsReady]);
+  const texturesCpu = useMemo(() => cpuSigns.map((s) => makeSignTexture(s.text)), [fontsReady, cpuSigns]);
+
+  if (cpu) {
+    return (
+      <group>
+        {cpuSigns.map((s, i) => (
+          <group key={s.text} position={[s.pos[0], 0, s.pos[1]]} rotation={[0, Math.PI / 2, 0]}>
+            <mesh position={[0, 0.8, 0]} castShadow>
+              <cylinderGeometry args={[0.05, 0.06, 1.6, 6]} />
+              <meshStandardMaterial color="#5A4630" roughness={0.9} />
+            </mesh>
+            <mesh position={[0, 1.6, 0.06]} castShadow>
+              <planeGeometry args={[0.8, 1.6]} />
+              <meshStandardMaterial map={texturesCpu[i]} roughness={0.85} />
+            </mesh>
+          </group>
+        ))}
+      </group>
+    );
+  }
   if (!classic) return null;
   return (
     <group>
@@ -156,7 +198,7 @@ function ZoneSigns() {
           </mesh>
           <mesh position={[0, 1.6, 0.06]} castShadow>
             <planeGeometry args={[0.8, 1.6]} />
-            <meshStandardMaterial map={textures[i]} roughness={0.85} />
+            <meshStandardMaterial map={texturesClassic[i]} roughness={0.85} />
           </mesh>
         </group>
       ))}
@@ -340,21 +382,36 @@ function CommandTower() {
 
 /* ================= 灯光 ================= */
 function Lights() {
+  const bounds = useSim((s) => s.netlist.bounds);
+  const lightRef = useRef<THREE.DirectionalLight>(null!);
+  const cx = Number.isFinite(bounds.minX) ? (bounds.minX + bounds.maxX) / 2 : 0;
+  const cz = Number.isFinite(bounds.minZ) ? (bounds.minZ + bounds.maxZ) / 2 : 0;
+  const hx = Math.max(48, (bounds.maxX - bounds.minX) / 2 + 18);
+  const hz = Math.max(48, (bounds.maxZ - bounds.minZ) / 2 + 18);
+  const far = Math.max(200, Math.hypot(hx, hz) * 2.2 + 60);
+  useLayoutEffect(() => {
+    const light = lightRef.current;
+    if (!light) return;
+    light.target.position.set(cx, 0, cz);
+    light.target.updateMatrixWorld();
+    light.shadow.mapSize.set(2048, 2048);
+    light.shadow.bias = -0.0004;
+    const cam = light.shadow.camera;
+    cam.left = -hx;
+    cam.right = hx;
+    cam.top = hz;
+    cam.bottom = -hz;
+    cam.far = far;
+    cam.updateProjectionMatrix();
+  }, [cx, cz, hx, hz, far]);
   return (
     <group>
-      {/* 白昼：暖阳主光（暖白晨光）+ 强天光/地面反弹补光 */}
       <directionalLight
-        position={[-58, 42, -24]}
+        ref={lightRef}
+        position={[cx - 58, 52, cz - 24]}
         color="#FFF2DC"
         intensity={2.6}
         castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-45}
-        shadow-camera-right={45}
-        shadow-camera-top={45}
-        shadow-camera-bottom={-45}
-        shadow-camera-far={180}
-        shadow-bias={-0.0004}
       />
       <hemisphereLight color="#BFD6EA" groundColor="#C9B189" intensity={0.85} />
     </group>

@@ -13,6 +13,10 @@ export default function DrumConsole() {
   const maxLayer = useSim((s) => s.netlist.maxLayer);
   const gateN = useSim((s) => s.netlist.stats.total);
   const speed = useSim((s) => s.speed);
+  const mode = useSim((s) => s.mode);
+  const programRound = useSim((s) => s.programRound);
+  const programLabel = useSim((s) => s.programLabel);
+  const programUntil = useSim((s) => s.programUntil);
   const drumPulse = useSim((s) => s.drumPulse);
   const toggleRun = useSim((s) => s.toggleRun);
   const stepOnce = useSim((s) => s.stepOnce);
@@ -22,6 +26,7 @@ export default function DrumConsole() {
 
   const canRun = status === 'READY' || status === 'PAUSED' || status === 'RUNNING';
   const running = status === 'RUNNING';
+  const beats = mode === 'program' && programUntil > 0 ? programUntil : maxLayer;
 
   return (
     <div className="panel flex items-center gap-3 px-4 py-3" role="group" aria-label="鼓令台">
@@ -72,13 +77,16 @@ export default function DrumConsole() {
       {/* 拍数 + 进度 */}
       <div className="min-w-[132px]">
         <div className="font-mono text-[16px]" style={{ color: 'var(--gold)' }}>
-          第 {tick} / {maxLayer} 拍
+          第 {tick} / {beats} 拍
         </div>
-        <div className="text-[11px]" style={{ color: 'var(--earth-300)' }}>{gateN} 门</div>
+        <div className="text-[11px]" style={{ color: 'var(--earth-300)' }}>
+          {gateN} 门{mode === 'program' && programLabel ? ` · ${programLabel}` : ''}
+          {mode === 'program' ? ` · 第 ${programRound} 轮` : ''}
+        </div>
         <div className="mt-1.5 h-[3px] w-full rounded-sm" style={{ background: 'var(--earth-700)' }}>
           <div
             className="h-full rounded-sm transition-[width] duration-200"
-            style={{ width: `${(tick / maxLayer) * 100}%`, background: 'var(--gold)' }}
+            style={{ width: `${(tick / Math.max(1, beats)) * 100}%`, background: 'var(--gold)' }}
           />
         </div>
       </div>

@@ -3,8 +3,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
-import { useSim } from '@/sim/store';
-import { gateTypeCN } from '@/sim/netlist';
+import { useSim, activeLayerCentroid } from '@/sim/store';
+import { CPU_OP_ZONES, gateTypeCN } from '@/sim/netlist';
 import { makePlateAtlas } from './textures';
 
 const now = () => performance.now() / 1000;
@@ -74,7 +74,7 @@ function DoorPlates() {
     ref.current.instanceMatrix.needsUpdate = true;
   }, [plated]);
 
-  return <instancedMesh key={`${netlist.expr}-${netlist.bits}-${n}`} ref={ref} args={[geom, mat, n]} />;
+  return <instancedMesh key={`${netlist.expr}-${netlist.bits}-${n}`} ref={ref} args={[geom, mat, n]} frustumCulled={false} dispose={null} />;
 }
 
 /* ================= 波前光带 ================= */
@@ -86,11 +86,16 @@ function WaveBand() {
   useEffect(() => {
     if (drumPulse === 0) return;
     const st = useSim.getState();
-    const gates = st.netlist.byLayer[Math.min(st.tick, st.netlist.maxLayer)];
-    if (!gates?.length) return;
-    let x0 = Infinity, x1 = -Infinity, z = 0;
-    for (const g of gates) { x0 = Math.min(x0, g.pos[0]); x1 = Math.max(x1, g.pos[0]); z += g.pos[1]; }
-    z /= gates.length;
+    const layer = Math.min(st.tick, st.netlist.maxLayer);
+    let gates = st.netlist.byLayer[layer] ?? [];
+    if (st.programOp) {
+      const z = new Set(CPU_OP_ZONES[st.programOp]);
+      gates = gates.filter((g) => z.has(g.zone));
+    }
+    if (!gates.length) return;
+    let x0 = Infinity, x1 = -Infinity;
+    for (const g of gates) { x0 = Math.min(x0, g.pos[0]); x1 = Math.max(x1, g.pos[0]); }
+    const [, z] = activeLayerCentroid(st.netlist, layer, st.programOp);
     ref.current.position.set(0, 0.06, z);
     anim.current = {
       t0: now(),

@@ -114,7 +114,7 @@ export default function Formation() {
         <p className="mt-4 max-w-2xl text-[14px] leading-relaxed text-sand">
           顶视图按演算场 3D 坐标等比绘制：北在上，信号自南向北逐级推进。
           悬停任一色块查看该分区编制，点击可锁定详情。
-          本页数字是 10 位经典编制 (A+B)×C（932 门 / 62 拍 / 21 位输出）；演算场可换 16/32 位军令。
+          本页数字是 10 位经典编制 (A+B)×C（932 门 / 62 拍 / 21 位输出）；演算场可换 16/32 位军令，也可加载多轮程序（每条赋值仍由士兵翻旗）。
         </p>
         <div className="mt-8">
           <FormationMap />

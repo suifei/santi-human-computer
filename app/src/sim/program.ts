@@ -37,6 +37,129 @@ export type ParseResult =
   | { ok: true; ast: Expr; canonical: string; ops: number; used: Record<VarName, boolean> }
   | { ok: false; error: string };
 
+export const REG_COUNT = 8;
+export const SCRATCH_COUNT = 2;
+export const MAX_SRC_LINES = 40;
+export const MAX_NEST = 2;
+export const MAX_CAMPAIGNS = 256;
+
+export type Operand =
+  | { k: 'in'; name: VarName }
+  | { k: 'reg'; i: number }
+  | { k: 'const'; v: bigint }
+  | { k: 'scratch'; i: number };
+
+export type ValExpr =
+  | Operand
+  | { k: 'bin'; op: BinOp; left: ValExpr; right: ValExpr };
+
+export type CmpOp = '==' | '!=' | '<' | '>' | '<=' | '>=';
+
+export function inputMaxBig(bits: number): bigint {
+  if (bits >= 32) return 0xFFFFFFFFn;
+  return (1n << BigInt(bits)) - 1n;
+}
+
+export function operandKey(o: Operand): string {
+  if (o.k === 'in') return o.name;
+  if (o.k === 'reg') return `R${o.i}`;
+  if (o.k === 'scratch') return `T${o.i}`;
+  return `#${o.v.toString()}`;
+}
+
+export function parseOperand(raw: string): { ok: true; op: Operand } | { ok: false; error: string } {
+  const s = raw.trim().toUpperCase();
+  if (/^[ABC]$/.test(s)) return { ok: true, op: { k: 'in', name: s as VarName } };
+  const rm = /^R([0-7])$/.exec(s);
+  if (rm) return { ok: true, op: { k: 'reg', i: Number(rm[1]) } };
+  if (/^\d+$/.test(s)) return { ok: true, op: { k: 'const', v: BigInt(s) } };
+  return { ok: false, error: `无法识别「${raw.trim() || '空'}」，请写 A/B/C、R0–R7 或十进制整数` };
+}
+
+export type ValParse =
+  | { ok: true; ast: ValExpr; ops: number }
+  | { ok: false; error: string };
+
+/** 程序赋值右边：A/B/C、R0–R7、十进制常量与四则（可 0 个运算，即复制） */
+export function parseValueExpr(raw: string): ValParse {
+  const src = raw
+    .trim()
+    .replace(/[×＊·]/g, '*')
+    .replace(/[÷／]/g, '/')
+    .replace(/[−－]/g, '-')
+    .replace(/\s+/g, '')
+    .toUpperCase();
+  if (!src) return { ok: false, error: '式子不能为空' };
+
+  let i = 0;
+  const peek = () => src[i] ?? '';
+  const eat = () => src[i++] ?? '';
+  const fail = (msg: string): never => { throw new Error(msg); };
+
+  function parseExpr(): ValExpr {
+    let left = parseTerm();
+    while (peek() === '+' || peek() === '-') {
+      const op = eat() as BinOp;
+      left = { k: 'bin', op, left, right: parseTerm() };
+    }
+    return left;
+  }
+  function parseTerm(): ValExpr {
+    let left = parseAtom();
+    while (peek() === '*' || peek() === '/') {
+      const op = eat() as BinOp;
+      left = { k: 'bin', op, left, right: parseAtom() };
+    }
+    return left;
+  }
+  function parseAtom(): ValExpr {
+    if (peek() === '(') {
+      eat();
+      const inner = parseExpr();
+      if (eat() !== ')') fail('括号未闭合');
+      return inner;
+    }
+    if (peek() === 'R') {
+      eat();
+      const d = eat();
+      if (d < '0' || d > '7') fail('寄存器只能是 R0–R7');
+      return { k: 'reg', i: Number(d) };
+    }
+    if (peek() >= '0' && peek() <= '9') {
+      let n = '';
+      while (peek() >= '0' && peek() <= '9') n += eat();
+      return { k: 'const', v: BigInt(n) };
+    }
+    const c = eat();
+    if (c === 'A' || c === 'B' || c === 'C') return { k: 'in', name: c };
+    return fail(`无法识别「${c || '文末'}」`);
+  }
+
+  try {
+    const ast = parseExpr();
+    if (i !== src.length) return { ok: false, error: `式子末尾有多余字符「${src.slice(i)}」` };
+    const ops = countValOps(ast);
+    if (ops > MAX_OPS) return { ok: false, error: `最多 ${MAX_OPS} 个运算，当前 ${ops} 个` };
+    return { ok: true, ast, ops };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : '式子无法解析' };
+  }
+}
+
+function countValOps(e: ValExpr): number {
+  return e.k === 'bin' ? 1 + countValOps(e.left) + countValOps(e.right) : 0;
+}
+
+export function collectOperands(e: ValExpr, into: Operand[] = []): Operand[] {
+  if (e.k === 'bin') {
+    collectOperands(e.left, into);
+    collectOperands(e.right, into);
+    return into;
+  }
+  into.push(e);
+  return into;
+}
+
 export function parseProgram(raw: string): ParseResult {
   const src = raw
     .trim()

@@ -76,6 +76,10 @@ export default function CameraRig() {
     camera.updateProjectionMatrix();
     const fog = scene.fog as THREE.FogExp2 | null;
     if (fog) fog.density = span > 80 ? 0.0035 : 0.006;
+    if (preset !== 'follow') {
+      const p = PRESETS[preset];
+      tweenTo(p.pos, p.tgt, 1.4, 'power2.inOut');
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [span]);
 
@@ -105,7 +109,7 @@ export default function CameraRig() {
     const st = useSim.getState();
     // 跟随信号：target 每拍 lerp 至激活层质心，保持相对偏移
     if (st.preset === 'follow' && st.introDone) {
-      const [cx, cz] = activeLayerCentroid(st.netlist, Math.max(1, st.tick));
+      const [cx, cz] = activeLayerCentroid(st.netlist, Math.max(1, st.tick), st.programOp);
       const c = controlsRef.current;
       c.target.lerp(new THREE.Vector3(cx, 0.8, cz), 0.06);
       camera.position.lerp(new THREE.Vector3(cx + 18, 12, cz + 22), 0.06);

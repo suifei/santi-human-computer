@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "verify:netlist": "esbuild src/sim/netlist.ts --bundle --format=esm --outfile=scripts/netlist-bundle.mjs --log-level=warning && node scripts/verify-netlist.mjs"
+    "verify:netlist": "esbuild src/sim/netlist.ts --bundle --format=esm --outfile=scripts/netlist-bundle.mjs --log-level=warning && node scripts/verify-netlist.mjs",
+    "verify:program": "esbuild src/sim/vm.ts --bundle --format=esm --outfile=scripts/program-bundle.mjs --log-level=warning && node scripts/verify-program.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

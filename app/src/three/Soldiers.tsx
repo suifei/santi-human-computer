@@ -1,6 +1,7 @@
 /**
- * 士兵方阵：4 个 InstancedMesh（躯干 / 头 / 臂+旗杆 / 旗帜），
- * 翻旗动画（320ms back.out）与待机摆动全部在着色器内完成，CPU 仅写实例属性。
+ * 士兵方阵：实例下标 = gates[i]，人与旗同坐标。
+ * 小阵全模；大阵全体素（含输入/输出），不再拆两套人导致旗和人对不齐。
+ * 全员都实例化，不减人数；视锥体不按原点包围盒裁掉远处人海。
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -13,10 +14,10 @@ import type { Gate } from '@/sim/netlist';
 
 const now = () => performance.now() / 1000;
 
-function placeGate(gate: Gate, i: number) {
+function placeGate(gate: Gate, i: number, columnC: boolean) {
   const [x, z] = gate.pos;
   let rotY = Math.PI;
-  if (gate.zone === 'C') rotY = Math.PI / 2;
+  if (columnC && gate.zone === 'C') rotY = Math.PI / 2;
   if (gate.zone === 'DONE') rotY = -Math.PI / 2;
   rotY += (Math.sin(i * 12.9898) * 43758.5453 % 1) * 0.06;
   const s = 0.97 + ((Math.sin(i * 78.233) * 12543.7 % 1 + 1) % 1) * 0.06;
@@ -36,14 +37,23 @@ function makeInstAttrs(count: number) {
   };
 }
 
-function writeGroup(meshes: (THREE.InstancedMesh | null)[], gates: Gate[]) {
+/** 预分配实例，换军令只改 count，避免拆网格时把共享几何/材质一起丢掉。 */
+const MAX_SOLDIERS = 22000;
+
+function writeGroup(meshes: (THREE.InstancedMesh | null)[], gates: Gate[], columnC: boolean) {
   const live = meshes.filter((m): m is THREE.InstancedMesh => m != null);
-  if (!live.length) return;
+  if (!live.length || !gates.length) return false;
   gates.forEach((gate, i) => {
-    const m = placeGate(gate, gate.index);
+    const m = placeGate(gate, gate.index, columnC);
     for (const mesh of live) mesh.setMatrixAt(i, m);
   });
-  for (const mesh of live) mesh.instanceMatrix.needsUpdate = true;
+  for (const mesh of live) {
+    mesh.count = gates.length;
+    mesh.frustumCulled = false;
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }
+  return true;
 }
 
 function colored(geom: THREE.BufferGeometry, hex: string): THREE.BufferGeometry {
@@ -130,37 +140,14 @@ export default function Soldiers() {
   const commitNonce = useSim((s) => s.commitNonce);
   const resetNonce = useSim((s) => s.resetNonce);
   const n = netlist.gates.length;
-  const LOD_AT = 1800;
-  const hero = useMemo(
-    () => (n > LOD_AT
-      ? netlist.gates.filter((g) => g.type === 'INPUT' || g.type === 'OUTPUT' || g.type === 'DONE')
-      : netlist.gates),
-    [netlist, n],
-  );
-  const lod = useMemo(
-    () => (n > LOD_AT
-      ? netlist.gates.filter((g) => g.type !== 'INPUT' && g.type !== 'OUTPUT' && g.type !== 'DONE')
-      : []),
-    [netlist, n],
-  );
-  const heroIndex = useMemo(() => {
-    const m = new Map<number, number>();
-    hero.forEach((g, i) => m.set(g.index, i));
-    return m;
-  }, [hero]);
-  const lodIndex = useMemo(() => {
-    const m = new Map<number, number>();
-    lod.forEach((g, i) => m.set(g.index, i));
-    return m;
-  }, [lod]);
+  const voxel = n > 4000;
+  const army = netlist.gates;
+  const columnC = netlist.expr !== 'CPU';
 
-  const bodyRef = useRef<THREE.InstancedMesh>(null!);
-  const headRef = useRef<THREE.InstancedMesh>(null!);
-  const poleRef = useRef<THREE.InstancedMesh>(null!);
-  const flagRef = useRef<THREE.InstancedMesh>(null!);
-  const lodBodyRef = useRef<THREE.InstancedMesh>(null);
-  const lodPoleRef = useRef<THREE.InstancedMesh>(null);
-  const lodFlagRef = useRef<THREE.InstancedMesh>(null);
+  const bodyRef = useRef<THREE.InstancedMesh>(null);
+  const headRef = useRef<THREE.InstancedMesh>(null);
+  const poleRef = useRef<THREE.InstancedMesh>(null);
+  const flagRef = useRef<THREE.InstancedMesh>(null);
 
   /* ---------- 几何：拟人秦卒 ----------
    * 比例：总高 ~1.76m，头高 ~0.24m（约 1/7.5）。
@@ -217,32 +204,48 @@ export default function Soldiers() {
       colored(new THREE.SphereGeometry(0.05, 6, 5).translate(0.224, 1.36, 0.01), SKIN),
     ])!;
     const flag = new THREE.PlaneGeometry(0.55, 0.38, 6, 2).translate(0.22 + 0.275, 2.26, 0);
-    const flagLod = new THREE.PlaneGeometry(0.55, 0.38, 4, 1).translate(0.22 + 0.275, 2.26, 0);
-    const bodyLod = colored(new THREE.BoxGeometry(0.34, 1.38, 0.24).translate(0, 0.72, 0), ARMOR);
-    const poleLod = colored(new THREE.CylinderGeometry(0.016, 0.016, 1.9, 5).translate(0.22, 1.65, 0), '#4A3726');
+    /* 大阵体素卒：俯视要成块，不能靠一根细杆。全员同一套实例，人旗同位。 */
+    const bodyLod = mergeGeometries([
+      colored(new THREE.BoxGeometry(0.58, 0.04, 0.50).translate(0, 0.02, 0.02), '#5A4630'),
+      colored(new THREE.BoxGeometry(0.20, 0.18, 0.26).translate(-0.12, 0.12, 0.05), BOOT),
+      colored(new THREE.BoxGeometry(0.20, 0.18, 0.26).translate(0.12, 0.12, 0.05), BOOT),
+      colored(new THREE.BoxGeometry(0.38, 0.52, 0.26).translate(0, 0.48, 0), ARMOR),
+      colored(new THREE.BoxGeometry(0.46, 0.58, 0.30).translate(0, 0.98, 0), ARMOR),
+      colored(new THREE.BoxGeometry(0.32, 0.10, 0.32).translate(0, 1.28, 0), BRONZE),
+      colored(new THREE.BoxGeometry(0.24, 0.24, 0.24).translate(0, 1.42, 0.04), SKIN),
+      colored(new THREE.BoxGeometry(0.26, 0.12, 0.26).translate(0, 1.56, 0), HAIR),
+    ])!;
+    bodyLod.clearGroups();
+    const poleLod = colored(new THREE.BoxGeometry(0.06, 1.85, 0.06).translate(0.22, 1.58, 0), '#4A3726');
+    const flagLod = new THREE.BoxGeometry(0.50, 0.38, 0.10).translate(0.22 + 0.25, 2.18, 0);
     return { body, head, pole, flag, flagLod, bodyLod, poleLod };
   }, []);
 
-  const attrsH = useMemo(() => makeInstAttrs(hero.length), [hero.length]);
-  const attrsL = useMemo(() => makeInstAttrs(Math.max(lod.length, 1)), [lod.length]);
+  const attrs = useMemo(() => makeInstAttrs(MAX_SOLDIERS), []);
+  const placed = useRef(false);
 
   useLayoutEffect(() => {
-    geoms.flag.setAttribute('aVal', attrsH.aVal);
-    geoms.flag.setAttribute('aPrev', attrsH.aPrev);
-    geoms.flag.setAttribute('aFlip', attrsH.aFlip);
-    geoms.flag.setAttribute('aLift', attrsH.aLift);
-    geoms.pole.setAttribute('aLift', attrsH.aLiftPole);
-    geoms.flagLod.setAttribute('aVal', attrsL.aVal);
-    geoms.flagLod.setAttribute('aPrev', attrsL.aPrev);
-    geoms.flagLod.setAttribute('aFlip', attrsL.aFlip);
-    geoms.flagLod.setAttribute('aLift', attrsL.aLift);
-    geoms.poleLod.setAttribute('aLift', attrsL.aLiftPole);
-  }, [geoms, attrsH, attrsL]);
+    const flagG = voxel ? geoms.flagLod : geoms.flag;
+    const poleG = voxel ? geoms.poleLod : geoms.pole;
+    flagG.setAttribute('aVal', attrs.aVal);
+    flagG.setAttribute('aPrev', attrs.aPrev);
+    flagG.setAttribute('aFlip', attrs.aFlip);
+    flagG.setAttribute('aLift', attrs.aLift);
+    poleG.setAttribute('aLift', attrs.aLiftPole);
+  }, [geoms, attrs, voxel]);
+
+  const placeAll = () => {
+    const meshes = voxel
+      ? [bodyRef.current, poleRef.current, flagRef.current]
+      : [bodyRef.current, headRef.current, poleRef.current, flagRef.current];
+    placed.current = writeGroup(meshes, army, columnC);
+  };
 
   useLayoutEffect(() => {
-    writeGroup([bodyRef.current, headRef.current, poleRef.current, flagRef.current], hero);
-    writeGroup([lodBodyRef.current, lodPoleRef.current, lodFlagRef.current], lod);
-  }, [netlist, hero, lod]);
+    placed.current = false;
+    placeAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [netlist, voxel, columnC]);
 
   /* ---------- 材质（只建一次；字体就绪后就地换旗面，避免拆 InstancedMesh） ---------- */
   const flagTexBlueRef = useRef<THREE.Texture | null>(null);
@@ -257,10 +260,14 @@ export default function Soldiers() {
     };
     const flagMat = new THREE.MeshStandardMaterial({
       map: red, side: THREE.DoubleSide, roughness: 0.9, metalness: 0,
-      emissive: new THREE.Color('#201408'), emissiveIntensity: 0.2,
+      emissive: new THREE.Color('#201408'), emissiveIntensity: 0.35,
     });
     injectSoldierShader(flagMat, { isFlag: true, map2: flagTexBlueRef });
-    return { body: std(), head: std(), pole: std({ isPole: true }), flag: flagMat };
+    const voxelMat = new THREE.MeshStandardMaterial({
+      vertexColors: true, roughness: 0.88, metalness: 0.04,
+      emissive: new THREE.Color('#2a2218'), emissiveIntensity: 0.22,
+    });
+    return { body: std(), head: std(), pole: std({ isPole: true }), flag: flagMat, voxel: voxelMat };
   }, []);
 
   const [fontsReady, setFontsReady] = useState(false);
@@ -282,6 +289,7 @@ export default function Soldiers() {
 
   /* ---------- 着色器时钟 ---------- */
   useFrame(() => {
+    if (!placed.current) placeAll();
     const t = now();
     const flipFast = useSim.getState().flipFast;
     for (const mat of [mats.body, mats.head, mats.pole, mats.flag]) {
@@ -299,52 +307,35 @@ export default function Soldiers() {
     const t = now();
     const fast = st.flipFast;
     let outSeq = 0;
-    const bump = (
-      attrs: typeof attrsH,
-      inst: number,
-      v: number,
-      delay: number,
-    ) => {
-      if (attrs.aVal.array[inst] === v) return;
-      attrs.aPrev.array[inst] = attrs.aVal.array[inst];
-      attrs.aVal.array[inst] = v;
-      attrs.aFlip.array[inst] = t + delay;
-      attrs.aLift.array[inst] = t + delay;
-      attrs.aLiftPole.array[inst] = t + delay;
-    };
     for (const idx of st.changed) {
       const gate = st.netlist.gates[idx];
       const v = st.values[idx];
+      if (attrs.aVal.array[idx] === v) continue;
       const delay = gate.type === 'OUTPUT' ? outSeq++ * 0.06 : (fast ? 0 : Math.random() * 0.06);
-      const hi = heroIndex.get(idx);
-      if (hi !== undefined) bump(attrsH, hi, v, delay);
-      const li = lodIndex.get(idx);
-      if (li !== undefined) bump(attrsL, li, v, delay);
+      attrs.aPrev.array[idx] = attrs.aVal.array[idx];
+      attrs.aVal.array[idx] = v;
+      attrs.aFlip.array[idx] = t + delay;
+      attrs.aLift.array[idx] = t + delay;
+      attrs.aLiftPole.array[idx] = t + delay;
     }
-    for (const a of [attrsH, attrsL]) {
-      for (const x of [a.aVal, a.aPrev, a.aFlip, a.aLift, a.aLiftPole]) x.needsUpdate = true;
-    }
+    for (const x of [attrs.aVal, attrs.aPrev, attrs.aFlip, attrs.aLift, attrs.aLiftPole]) x.needsUpdate = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commitNonce]);
 
   useEffect(() => {
     if (resetNonce === 0) return;
     const t = now();
-    const resetGroup = (gates: Gate[], attrs: typeof attrsH) => {
-      gates.forEach((gate, i) => {
-        if (attrs.aVal.array[i] === 0) { attrs.aPrev.array[i] = 0; return; }
-        const [x, z] = gate.pos;
-        const dist = Math.hypot(x + 32, z + 24);
-        attrs.aPrev.array[i] = attrs.aVal.array[i];
-        attrs.aVal.array[i] = 0;
-        attrs.aFlip.array[i] = t + dist * 0.008;
-        attrs.aLift.array[i] = t + dist * 0.008;
-        attrs.aLiftPole.array[i] = t + dist * 0.008;
-      });
-      for (const a of [attrs.aVal, attrs.aPrev, attrs.aFlip, attrs.aLift, attrs.aLiftPole]) a.needsUpdate = true;
-    };
-    resetGroup(hero, attrsH);
-    if (lod.length) resetGroup(lod, attrsL);
+    army.forEach((gate, i) => {
+      if (attrs.aVal.array[i] === 0) { attrs.aPrev.array[i] = 0; return; }
+      const [x, z] = gate.pos;
+      const dist = Math.hypot(x + 32, z + 24);
+      attrs.aPrev.array[i] = attrs.aVal.array[i];
+      attrs.aVal.array[i] = 0;
+      attrs.aFlip.array[i] = t + dist * 0.008;
+      attrs.aLift.array[i] = t + dist * 0.008;
+      attrs.aLiftPole.array[i] = t + dist * 0.008;
+    });
+    for (const a of [attrs.aVal, attrs.aPrev, attrs.aFlip, attrs.aLift, attrs.aLiftPole]) a.needsUpdate = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetNonce]);
 
@@ -352,26 +343,33 @@ export default function Soldiers() {
   const select = useSim((s) => s.select);
 
   return (
-    <group key={`${netlist.expr}-${netlist.bits}-${n}`}>
-      <instancedMesh
-        ref={bodyRef} args={[geoms.body, mats.body, hero.length]} castShadow receiveShadow
-        onPointerMove={(e) => { e.stopPropagation(); hover(hero[e.instanceId!].id); }}
-        onPointerDown={(e) => { e.stopPropagation(); select(hero[e.instanceId!].id); }}
-        onPointerOut={() => hover(null)}
-      />
-      <instancedMesh ref={headRef} args={[geoms.head, mats.head, hero.length]} castShadow />
-      <instancedMesh ref={poleRef} args={[geoms.pole, mats.pole, hero.length]} />
-      <instancedMesh ref={flagRef} args={[geoms.flag, mats.flag, hero.length]} castShadow />
-      {lod.length > 0 && (
+    <group>
+      {voxel ? (
         <>
           <instancedMesh
-            ref={lodBodyRef} args={[geoms.bodyLod, mats.body, lod.length]}
-            onPointerMove={(e) => { e.stopPropagation(); hover(lod[e.instanceId!].id); }}
-            onPointerDown={(e) => { e.stopPropagation(); select(lod[e.instanceId!].id); }}
+            ref={bodyRef} args={[geoms.bodyLod, mats.voxel, MAX_SOLDIERS]}
+            frustumCulled={false}
+            dispose={null}
+            onPointerMove={(e) => { e.stopPropagation(); hover(army[e.instanceId!].id); }}
+            onPointerDown={(e) => { e.stopPropagation(); select(army[e.instanceId!].id); }}
             onPointerOut={() => hover(null)}
           />
-          <instancedMesh ref={lodPoleRef} args={[geoms.poleLod, mats.pole, lod.length]} />
-          <instancedMesh ref={lodFlagRef} args={[geoms.flagLod, mats.flag, lod.length]} />
+          <instancedMesh ref={poleRef} args={[geoms.poleLod, mats.pole, MAX_SOLDIERS]} frustumCulled={false} dispose={null} />
+          <instancedMesh ref={flagRef} args={[geoms.flagLod, mats.flag, MAX_SOLDIERS]} frustumCulled={false} dispose={null} />
+        </>
+      ) : (
+        <>
+          <instancedMesh
+            ref={bodyRef} args={[geoms.body, mats.body, MAX_SOLDIERS]} castShadow receiveShadow
+            frustumCulled={false}
+            dispose={null}
+            onPointerMove={(e) => { e.stopPropagation(); hover(army[e.instanceId!].id); }}
+            onPointerDown={(e) => { e.stopPropagation(); select(army[e.instanceId!].id); }}
+            onPointerOut={() => hover(null)}
+          />
+          <instancedMesh ref={headRef} args={[geoms.head, mats.head, MAX_SOLDIERS]} castShadow frustumCulled={false} dispose={null} />
+          <instancedMesh ref={poleRef} args={[geoms.pole, mats.pole, MAX_SOLDIERS]} frustumCulled={false} dispose={null} />
+          <instancedMesh ref={flagRef} args={[geoms.flag, mats.flag, MAX_SOLDIERS]} frustumCulled={false} dispose={null} />
         </>
       )}
     </group>

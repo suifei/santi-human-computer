@@ -11,7 +11,7 @@ export type { BitWidth } from './program';
 export { DEFAULT_EXPR, DEFAULT_BITS, inputMax, displayExpr, parseProgram, PRESET_EXPRS, BIT_WIDTHS, MAX_OPS, MAX_OUT_BITS, evalExpr, zeroDivisorReason } from './program';
 
 export type GateType = 'INPUT' | 'AND' | 'OR' | 'XOR' | 'NOT' | 'OUTPUT' | 'DONE';
-export type Zone = 'A' | 'B' | 'C' | 'ADDER' | 'PP' | 'ACC' | 'SUB' | 'DIV' | 'OUT' | 'DONE';
+export type Zone = 'A' | 'B' | 'C' | 'ADDER' | 'PP' | 'ACC' | 'SUB' | 'DIV' | 'OUT' | 'DONE' | 'REG' | 'OP' | 'CMP';
 
 export interface Gate {
   id: number;
@@ -27,6 +27,17 @@ export interface Gate {
 
 export interface FieldBounds { minX: number; maxX: number; minZ: number; maxZ: number }
 
+export type CpuOp = 'pass' | 'add' | 'sub' | 'mul' | 'div' | 'nz' | 'eq' | 'lt';
+
+export interface CpuLayout {
+  aluA: number[];
+  aluB: number[];
+  inputRegs: number[][];
+  inputScratch: number[][];
+  inputInv: number;
+  outs: Record<CpuOp, number[]>;
+}
+
 export interface Netlist {
   gates: Gate[];
   byId: Map<number, Gate>;
@@ -41,11 +52,24 @@ export interface Netlist {
   outBits: number[];
   doneId: number;
   bounds: FieldBounds;
+  cpu?: CpuLayout;
   stats: {
     total: number; inputs: number; adder: number; sub: number; pp: number;
     acc: number; div: number; out: number; maxLayer: number;
   };
 }
+
+/** 本轮求值只翻这些区的旗；其余部队保持上次真值（门控）。 */
+export const CPU_OP_ZONES: Record<CpuOp, Zone[]> = {
+  pass: ['OUT'],
+  add: ['ADDER'],
+  sub: ['SUB'],
+  mul: ['PP', 'ACC'],
+  div: ['DIV'],
+  nz: ['CMP'],
+  eq: ['CMP'],
+  lt: ['CMP'],
+};
 
 export const INPUT_MAX = 1023;
 
@@ -71,9 +95,7 @@ function finishNetlist(
   byId: Map<number, Gate>,
   extra: Omit<Netlist, 'gates' | 'byId' | 'byLayer' | 'maxLayer' | 'bounds' | 'stats'> & { stats?: Partial<Netlist['stats']> },
 ): Netlist {
-  const maxLayer = extra.doneId !== undefined
-    ? (byId.get(extra.doneId)?.layer ?? Math.max(...gates.map((g) => g.layer)))
-    : Math.max(...gates.map((g) => g.layer));
+  const maxLayer = Math.max(...gates.map((g) => g.layer), 1);
   const byLayer: Gate[][] = Array.from({ length: maxLayer + 1 }, () => []);
   for (const g of gates) byLayer[g.layer].push(g);
   const counts = { adder: 0, sub: 0, pp: 0, acc: 0, div: 0, inputs: 0, out: 0 };
@@ -83,7 +105,7 @@ function finishNetlist(
     else if (g.zone === 'PP') counts.pp++;
     else if (g.zone === 'ACC') counts.acc++;
     else if (g.zone === 'DIV') counts.div++;
-    else if (g.zone === 'A' || g.zone === 'B' || g.zone === 'C') counts.inputs++;
+    else if (g.zone === 'A' || g.zone === 'B' || g.zone === 'C' || g.zone === 'REG' || g.zone === 'OP') counts.inputs++;
     else if (g.zone === 'OUT') counts.out++;
   }
   return {
@@ -91,6 +113,7 @@ function finishNetlist(
     bits: extra.bits, expr: extra.expr,
     inputA: extra.inputA, inputB: extra.inputB, inputC: extra.inputC,
     sumBits: extra.sumBits, outBits: extra.outBits, doneId: extra.doneId,
+    cpu: extra.cpu,
     stats: {
       total: gates.length, maxLayer,
       inputs: counts.inputs, adder: counts.adder, sub: counts.sub,
@@ -138,7 +161,9 @@ function placeClassic(zone: Zone, seq: Record<Zone, number>, meta?: PlaceMeta): 
 function buildClassic10(): Netlist {
   const gates: Gate[] = [];
   const byId = new Map<number, Gate>();
-  const seq: Record<Zone, number> = { A: 0, B: 0, C: 0, ADDER: 0, PP: 0, ACC: 0, SUB: 0, DIV: 0, OUT: 0, DONE: 0 };
+  const seq: Record<Zone, number> = {
+    A: 0, B: 0, C: 0, ADDER: 0, PP: 0, ACC: 0, SUB: 0, DIV: 0, OUT: 0, DONE: 0, REG: 0, OP: 0, CMP: 0,
+  };
   const layerOf = (id: number | null) => (id === null ? -1 : byId.get(id)!.layer);
 
   function add(id: number, type: GateType, inA: number | null, inB: number | null, zone: Zone, label: string, pos: [number, number], fixedLayer?: number): Gate {
@@ -282,7 +307,7 @@ class Compiler {
     return (part: number): [number, number] => {
       const x = this.x0 + bit * p + (part === 1 || part === 3 ? 0.22 : part === 4 ? 0 : -0.22);
       let z = z0;
-      if (zone === 'ADDER' || zone === 'SUB' || zone === 'DIV') {
+      if (zone === 'ADDER' || zone === 'SUB' || zone === 'DIV' || zone === 'CMP') {
         z = z0 + (part <= 1 ? 1.6 : part <= 3 ? 0 : -1.6);
       } else {
         z = z0 - band * 1.45 + (part <= 1 ? 0.4 : part <= 3 ? 0 : -0.4);
@@ -444,6 +469,328 @@ function compileNetlist(ast: Expr, bits: BitWidth, canonical: string): Netlist {
   });
 }
 
+function orReduce(c: Compiler, bits: number[], zone: Zone, label: string, z0: number): number {
+  let cur = [...bits];
+  let level = 0;
+  while (cur.length > 1) {
+    const next: number[] = [];
+    for (let i = 0; i < cur.length; i += 2) {
+      if (i + 1 >= cur.length) { next.push(cur[i]); continue; }
+      const x = c.x0 + (i / 2) * c.pitch;
+      next.push(c.add('OR', cur[i], cur[i + 1], zone, `${label}·或${level}.${i}`, [x, z0 - level * 1.1]));
+    }
+    cur = next;
+    level++;
+  }
+  c.cursorZ = z0 - level * 1.1 - 1;
+  return cur[0]!;
+}
+
+function closeSimple(
+  c: Compiler,
+  bits: number,
+  expr: string,
+  inputA: number[],
+  inputB: number[],
+  inputC: number[],
+  resultBits: number[],
+): Netlist {
+  const maxLogic = Math.max(...c.gates.map((g) => g.layer), 1);
+  const outBits: number[] = [];
+  for (let i = 0; i < resultBits.length; i++) {
+    outBits.push(c.add('OUTPUT', resultBits[i], null, 'OUT', `輸出區·第${i}位`, [c.x0 + i * c.pitch, c.cursorZ], maxLogic + 1));
+  }
+  const doneId = c.add('DONE', null, null, 'DONE', '鼓令直屬·DONE旗手', [c.x0 + resultBits.length * c.pitch + 2, c.cursorZ - 1], maxLogic + 2);
+  return finishNetlist(c.gates, c.byId, {
+    bits, expr, inputA, inputB, inputC, sumBits: [], outBits, doneId,
+  });
+}
+
+function rowInputs(c: Compiler, n: number, zone: Zone, z: number, label: string): number[] {
+  const ids: number[] = [];
+  for (let i = 0; i < n; i++) {
+    ids.push(c.add('INPUT', null, null, zone, `${label}·第${i}位`, [c.x0 + i * c.pitch, z]));
+  }
+  return ids;
+}
+
+/** 复制甲列：赋值 R = 某值 时，值仍由士兵从输入手传到输出手 */
+export function buildPassNetlist(bits: BitWidth): Netlist {
+  const c = new Compiler(bits);
+  const inputA = rowInputs(c, bits, 'A', 24, '輸入手·甲A');
+  c.cursorZ = 18;
+  return closeSimple(c, bits, 'A', inputA, [], [], inputA);
+}
+
+export type TestKind = 'nz' | 'eqz' | 'eq' | 'ne' | 'lt' | 'ge';
+
+function buildLtBits(c: Compiler, a: number[], b: number[]): number {
+  const w = Math.max(a.length, b.length);
+  const z0 = c.cursorZ;
+  const notB: number[] = [];
+  for (let i = 0; i < w; i++) {
+    notB.push(c.add('NOT', b[i] ?? null, null, 'CMP', `比較·非B·第${i}位`, [c.x0 + i * c.pitch, z0 + 3]));
+  }
+  const cin1 = c.add('NOT', null, null, 'CMP', '比較·補碼進位', [c.x0 - 1.2, z0]);
+  const sum = c.rippleAdd(
+    Array.from({ length: w }, (_, i) => a[i] ?? null),
+    notB,
+    cin1,
+    'CMP',
+    '比較減',
+    z0,
+    true,
+  );
+  const cout = sum[w] ?? sum[sum.length - 1]!;
+  c.cursorZ = z0 - 7;
+  return c.add('NOT', cout, null, 'CMP', '比較·小於', [c.x0 + w * c.pitch, z0 - 5]);
+}
+
+/** if/while 条件：比较与非零都铺成门级方阵，结果 1 位 */
+export function buildTestNetlist(kind: TestKind, bits: BitWidth): Netlist {
+  const c = new Compiler(bits);
+  const needB = kind === 'eq' || kind === 'ne' || kind === 'lt' || kind === 'ge';
+  const inputA = rowInputs(c, bits, 'A', 24, '輸入手·甲A');
+  const inputB = needB ? rowInputs(c, bits, 'B', 26, '輸入手·乙B') : [];
+  let bit: number;
+  if (kind === 'nz' || kind === 'eqz') {
+    bit = orReduce(c, inputA, 'ADDER', '非零', 18);
+    if (kind === 'eqz') bit = c.add('NOT', bit, null, 'ADDER', '为零', [c.x0, c.cursorZ]);
+  } else if (kind === 'eq' || kind === 'ne') {
+    const xors: number[] = [];
+    for (let i = 0; i < bits; i++) {
+      xors.push(c.add('XOR', inputA[i], inputB[i], 'ADDER', `相等·异或${i}`, [c.x0 + i * c.pitch, 18]));
+    }
+    bit = orReduce(c, xors, 'ADDER', '相异', 16);
+    if (kind === 'eq') bit = c.add('NOT', bit, null, 'ADDER', '相等', [c.x0, c.cursorZ]);
+  } else {
+    bit = buildLtBits(c, inputA, inputB);
+    if (kind === 'ge') bit = c.add('NOT', bit, null, 'SUB', '大於等於', [c.x0, c.cursorZ]);
+  }
+  const expr =
+    kind === 'nz' ? 'nz(A)' :
+    kind === 'eqz' ? 'A==0' :
+    kind === 'eq' ? 'A==B' :
+    kind === 'ne' ? 'A!=B' :
+    kind === 'lt' ? 'A<B' : 'A>=B';
+  return closeSimple(c, bits, expr, inputA, inputB, [], [bit]);
+}
+
+function emitUnitOuts(c: Compiler, raw: number[], zone: Zone, label: string, x0: number, z: number): number[] {
+  return raw.map((id, i) =>
+    c.add('OUTPUT', id, null, zone, `${label}·第${i}位`, [x0 + i * c.pitch, z]),
+  );
+}
+
+const cpuCache = new Map<string, Netlist>();
+const CPU_LAYOUT_REV = 'r5';
+
+/**
+ * 程序模式的固定数据通路：寄存器、加减乘除、比较一次列齐。
+ * 北：寄存器+总线；中：比较/加/减三列贴紧；南：乘、除并排。不按列拉开。
+ */
+export function buildCpuNetlist(bits: BitWidth): Netlist {
+  const key = `${CPU_LAYOUT_REV}-${bits}`;
+  const hit = cpuCache.get(key);
+  if (hit) return hit;
+
+  const c = new Compiler(bits);
+  const p = c.pitch;
+  const wA = bits + 1;
+  const wB = bits;
+  const band = bits * p + 1.1;
+  const gutter = 1.4;
+  const accW = (bits + wA) * p;
+  const divW = (bits + 2) * p;
+  const southW = accW + divW + gutter;
+
+  const xAdd = -band * 0.5;
+  const xCmp = xAdd - band - gutter;
+  const xSub = xAdd + band + gutter;
+  const xMul = -southW / 2;
+  const xDiv = xMul + accW + gutter;
+
+  const zLogic = 5.8;
+  const zBus = 8.4;
+  const zA = 10.15;
+  const zB = 10.8;
+  const zC = 11.45;
+  const zReg = 12.15;
+  const regPitch = 0.52;
+
+  c.x0 = xAdd;
+  const inputRegs: number[][] = [];
+  for (let r = 0; r < 8; r++) {
+    inputRegs.push(rowInputs(c, bits, 'REG', zReg + r * regPitch, `寄存器R${r}`));
+  }
+  const inputScratch = [
+    rowInputs(c, wA, 'REG', zReg + 8 * regPitch, '暫存T0'),
+    rowInputs(c, wA, 'REG', zReg + 9 * regPitch, '暫存T1'),
+  ];
+
+  const inputA = rowInputs(c, bits, 'A', zA, '輸入手·甲A');
+  const inputB = rowInputs(c, bits, 'B', zB, '輸入手·乙B');
+  const inputC = rowInputs(c, bits, 'C', zC, '輸入手·丙C');
+
+  const aluA = rowInputs(c, wA, 'OP', zBus, 'ALU·甲');
+  const aluB = rowInputs(c, wB, 'OP', zBus + 0.65, 'ALU·乙');
+  const inputInv = c.add('INPUT', null, null, 'OP', '令旗·反相', [xAdd - 1.6, zBus]);
+  const aluAlo = aluA.slice(0, bits);
+
+  c.x0 = xAdd;
+  const passOut = aluA.map((id, i) =>
+    c.add('OUTPUT', id, null, 'OUT', `複製·第${i}位`, [xAdd + i * p, zBus - 0.85], 1),
+  );
+
+  c.x0 = xAdd;
+  c.cursorZ = zLogic;
+  const addRaw = c.addOp(aluAlo, aluB);
+  const addOut = emitUnitOuts(c, addRaw, 'ADDER', '加輸出', xAdd, c.cursorZ);
+
+  c.x0 = xSub;
+  c.cursorZ = zLogic;
+  const subRaw = c.subOp(aluAlo, aluB);
+  const subOut = emitUnitOuts(c, subRaw, 'SUB', '減輸出', xSub, c.cursorZ);
+
+  c.x0 = xCmp;
+  c.cursorZ = zLogic;
+  const nzRaw = orReduce(c, aluAlo, 'CMP', '非零', zLogic + 2.2);
+  const xors: number[] = [];
+  for (let i = 0; i < bits; i++) {
+    xors.push(c.add('XOR', aluAlo[i]!, aluB[i]!, 'CMP', `相等·异或${i}`, [xCmp + i * p, zLogic - 2.1]));
+  }
+  const neRaw = orReduce(c, xors, 'CMP', '相异', zLogic - 3.2);
+  const eqRaw = c.add('NOT', neRaw, null, 'CMP', '相等', [xCmp, c.cursorZ]);
+  c.cursorZ = zLogic - 2.4;
+  const ltRaw = buildLtBits(c, aluAlo, aluB);
+  const nzBit = c.add('XOR', nzRaw, inputInv, 'CMP', 'nz⊕反相', [xCmp, zLogic + 0.4]);
+  const eqBit = c.add('XOR', eqRaw, inputInv, 'CMP', 'eq⊕反相', [xCmp, zLogic - 5.4]);
+  const ltBit = c.add('XOR', ltRaw, inputInv, 'CMP', 'lt⊕反相', [xCmp, c.cursorZ - 0.6]);
+  const nzOut = [c.add('OUTPUT', nzBit, null, 'CMP', 'nz輸出', [xCmp + 1.6, zLogic - 0.3])];
+  const eqOut = [c.add('OUTPUT', eqBit, null, 'CMP', 'eq輸出', [xCmp + 1.6, zLogic - 6.1])];
+  const ltOut = [c.add('OUTPUT', ltBit, null, 'CMP', 'lt輸出', [xCmp + 1.6, c.cursorZ - 1.4])];
+
+  const northMinZ = Math.min(...c.gates.map((g) => g.pos[1]));
+  const zSouth = northMinZ - 2.4;
+
+  c.x0 = xMul;
+  c.cursorZ = zSouth;
+  const mulRaw = c.mulOp(aluA, aluB);
+  const mulOut = emitUnitOuts(c, mulRaw, 'ACC', '乘輸出', xMul, c.cursorZ);
+
+  c.x0 = xDiv;
+  c.cursorZ = zSouth;
+  const divRaw = c.divOp(aluAlo, aluB);
+  const divOut = emitUnitOuts(c, divRaw, 'DIV', '除輸出', xDiv, c.cursorZ);
+
+  const doneId = c.add('DONE', null, null, 'DONE', '鼓令直屬·DONE旗手', [xSub + band + 1.2, zLogic], 1);
+
+  const nl = finishNetlist(c.gates, c.byId, {
+    bits,
+    expr: 'CPU',
+    inputA,
+    inputB,
+    inputC,
+    sumBits: addOut,
+    outBits: addOut,
+    doneId,
+    cpu: {
+      aluA,
+      aluB,
+      inputRegs,
+      inputScratch,
+      inputInv,
+      outs: {
+        pass: passOut,
+        add: addOut,
+        sub: subOut,
+        mul: mulOut,
+        div: divOut,
+        nz: nzOut,
+        eq: eqOut,
+        lt: ltOut,
+      },
+    },
+  });
+  cpuCache.set(key, nl);
+  return nl;
+}
+
+export function cpuUntilLayer(nl: Netlist, op: CpuOp): number {
+  const z = new Set(CPU_OP_ZONES[op]);
+  let m = 1;
+  for (const g of nl.gates) {
+    if (z.has(g.zone)) m = Math.max(m, g.layer);
+  }
+  return m;
+}
+
+export type CpuInject = {
+  A: bigint;
+  B: bigint;
+  C: bigint;
+  aluA: bigint;
+  aluB: bigint;
+  inv: boolean;
+  regs: bigint[];
+  scratch: bigint[];
+};
+
+export function injectCpu(nl: Netlist, values: Uint8Array, p: CpuInject) {
+  injectInputs(nl, values, p.A, p.B, p.C);
+  const cpu = nl.cpu;
+  if (!cpu) return;
+  for (let i = 0; i < cpu.aluA.length; i++) values[nl.byId.get(cpu.aluA[i])!.index] = bitOf(p.aluA, i);
+  for (let i = 0; i < cpu.aluB.length; i++) values[nl.byId.get(cpu.aluB[i])!.index] = bitOf(p.aluB, i);
+  values[nl.byId.get(cpu.inputInv)!.index] = p.inv ? 1 : 0;
+  for (let r = 0; r < cpu.inputRegs.length; r++) {
+    const row = cpu.inputRegs[r]!;
+    const v = p.regs[r] ?? 0n;
+    for (let i = 0; i < row.length; i++) values[nl.byId.get(row[i])!.index] = bitOf(v, i);
+  }
+  for (let s = 0; s < cpu.inputScratch.length; s++) {
+    const row = cpu.inputScratch[s]!;
+    const v = p.scratch[s] ?? 0n;
+    for (let i = 0; i < row.length; i++) values[nl.byId.get(row[i])!.index] = bitOf(v, i);
+  }
+}
+
+export function evalCpuLayer(nl: Netlist, values: Uint8Array, t: number, op: CpuOp, untilLayer: number): number[] {
+  const active = new Set(CPU_OP_ZONES[op]);
+  const snap = values.slice();
+  const changed: number[] = [];
+  const write = (g: Gate, v: 0 | 1) => {
+    if (values[g.index] !== v) {
+      values[g.index] = v;
+      changed.push(g.index);
+    }
+  };
+  for (const g of nl.byLayer[t] ?? []) {
+    if (g.type === 'DONE' || !active.has(g.zone)) continue;
+    write(g, evalGate(g, snap, nl.byId));
+  }
+  if (t === untilLayer) {
+    const done = nl.byId.get(nl.doneId);
+    if (done) write(done, evalGate(done, snap, nl.byId));
+  }
+  return changed;
+}
+
+export function runCpuOp(nl: Netlist, values: Uint8Array, op: CpuOp): bigint {
+  const until = cpuUntilLayer(nl, op);
+  for (let t = 1; t <= until; t++) evalCpuLayer(nl, values, t, op, until);
+  return readCpuResult(nl, values, op);
+}
+
+export function readCpuResult(nl: Netlist, values: Uint8Array, op: CpuOp): bigint {
+  const ids = nl.cpu?.outs[op] ?? nl.outBits;
+  let r = 0n;
+  for (let i = 0; i < ids.length; i++) {
+    if (values[nl.byId.get(ids[i])!.index]) r |= 1n << BigInt(i);
+  }
+  return r;
+}
+
 export type BuildOk = { ok: true; netlist: Netlist };
 export type BuildErr = { ok: false; error: string };
 
@@ -482,17 +829,18 @@ export function evalGate(g: Gate, values: Uint8Array, byId: Map<number, Gate>): 
   }
 }
 
-export function bitOf(v: number, i: number): 0 | 1 {
-  return Number((BigInt(v >>> 0) >> BigInt(i)) & 1n) as 0 | 1;
+export function bitOf(v: number | bigint, i: number): 0 | 1 {
+  const x = typeof v === 'bigint' ? v : BigInt(v >>> 0);
+  return Number((x >> BigInt(i)) & 1n) as 0 | 1;
 }
 
-export function injectInputs(nl: Netlist, values: Uint8Array, A: number, B: number, C: number) {
+export function injectInputs(nl: Netlist, values: Uint8Array, A: number | bigint, B: number | bigint, C: number | bigint) {
   for (let i = 0; i < nl.inputA.length; i++) values[nl.byId.get(nl.inputA[i])!.index] = bitOf(A, i);
   for (let i = 0; i < nl.inputB.length; i++) values[nl.byId.get(nl.inputB[i])!.index] = bitOf(B, i);
   for (let i = 0; i < nl.inputC.length; i++) values[nl.byId.get(nl.inputC[i])!.index] = bitOf(C, i);
 }
 
-export function runNetlist(nl: Netlist, A: number, B: number, C: number): Uint8Array {
+export function runNetlist(nl: Netlist, A: number | bigint, B: number | bigint, C: number | bigint): Uint8Array {
   const values = new Uint8Array(nl.gates.length);
   injectInputs(nl, values, A, B, C);
   for (let t = 1; t <= nl.maxLayer; t++) {
@@ -515,6 +863,7 @@ export function zoneCN(zone: Zone): string {
     A: '輸入區·甲行', B: '輸入區·乙行', C: '輸入區·丙列',
     ADDER: '加法陣', PP: '部分積陣', ACC: '累加陣',
     SUB: '減法陣', DIV: '除法陣', OUT: '輸出區', DONE: '監軍台',
+    REG: '寄存器列', OP: '運算數總線', CMP: '比較陣',
   }[zone];
 }
 export function gateTypeCN(t: GateType): string { return TYPE_CN[t]; }
