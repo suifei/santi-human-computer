@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 设计令牌（design.md §3.1） */
+    --ink: #17100B;
+    --earth-900: #241A11;
+    --earth-700: #4A3726;
+    --earth-500: #7A5C3E;
+    --earth-300: #A08059;
+    --sand: #C9B18A;
+    --paper: #E8DCC3;
+    --paper-dim: #D9C9A3;
+    --bronze: #B08A4F;
+    --gold: #D4A952;
+    --ember: #FF8C42;
+    --flag-red: #C23B2E;
+    --flag-red-bright: #E0503C;
+    --flag-blue: #3E5F75;
+    --flag-blue-bright: #5A7E94;
+    --seal: #A32E22;
+
+    /* shadcn 兼容变量（映射到暖色令牌） */
+    --background: 20 16 11;
+    --foreground: 201 177 138;
+    --card: 36 26 17;
+    --card-foreground: 232 220 195;
+    --popover: 36 26 17;
+    --popover-foreground: 232 220 195;
+    --primary: 212 169 82;
+    --primary-foreground: 23 16 11;
+    --secondary: 74 55 38;
+    --secondary-foreground: 232 220 195;
+    --muted: 74 55 38;
+    --muted-foreground: 160 128 89;
+    --accent: 176 138 79;
+    --accent-foreground: 23 16 11;
+    --destructive: 194 59 46;
+    --destructive-foreground: 232 220 195;
+    --border: 74 55 38;
+    --input: 74 55 38;
+    --ring: 212 169 82;
+    --radius: 0.5rem;
+  }
+
+  html {
+    background-color: var(--ink);
+    color: var(--sand);
+    font-family: 'Noto Sans SC', system-ui, sans-serif;
+  }
+
+  body {
+    background-color: var(--ink);
+  }
+
+  ::selection {
+    background: rgba(212, 169, 82, 0.35);
+    color: var(--paper);
+  }
+
+  /* 细滚动条：轨道 --ink，滑块 --bronze */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--ink); }
+  ::-webkit-scrollbar-thumb { background: var(--bronze); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+}
+
+@layer utilities {
+  .font-brush { font-family: 'Ma Shan Zheng', 'Noto Serif SC', serif; }
+  .font-song { font-family: 'Noto Serif SC', serif; }
+  .font-hei { font-family: 'Noto Sans SC', sans-serif; }
+  .font-mono-num { font-family: 'JetBrains Mono', monospace; }
+
+  .panel {
+    background: rgba(23, 16, 11, 0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(176, 138, 79, 0.35);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+  .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: var(--bronze);
+  }
+  .panel-title::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+    background: var(--seal);
+    border-radius: 1px;
+  }
+  .paper-card {
+    background-color: var(--paper);
+    background-image: url('/paper-grain.jpg');
+    background-size: 512px;
+    background-blend-mode: multiply;
+    color: var(--ink);
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(23, 16, 11, 0.35);
+  }
+  .ember-glow { box-shadow: 0 0 24px rgba(255, 140, 66, 0.35); }
+}
