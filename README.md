@@ -34,6 +34,8 @@
   <img alt="pages" src="https://img.shields.io/github/actions/workflow/status/suifei/santi-human-computer/deploy-pages.yml?label=GitHub%20Pages" />
 </p>
 
+![入阵页：繁体标题「人列計算機」](docs/screenshots/00-loading.png)
+
 ![演算场：注入列机位，秦兵持红蓝旗](docs/screenshots/01-yard.png)
 
 ---
