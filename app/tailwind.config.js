@@ -67,7 +67,7 @@ module.exports = {
         xs: "calc(var(--radius) - 6px)",
       },
       fontFamily: {
-        brush: ["'Ma Shan Zheng'", "'Noto Serif SC'", "serif"],
+        brush: ["'Ma Shan Zheng'", "Iansui", "'Noto Serif SC'", "serif"],
         song: ["'Noto Serif SC'", "serif"],
         hei: ["'Noto Sans SC'", "sans-serif"],
         mono: ["'JetBrains Mono'", "monospace"],

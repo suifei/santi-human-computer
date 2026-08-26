@@ -23,7 +23,7 @@ export default function TopBar() {
       <div className="flex items-center gap-2.5">
         <img src={asset('logo-seal.svg')} alt="印章" width={28} height={28} className="rounded-sm" />
         <div className="leading-tight">
-          <div className="font-brush text-[24px] text-paper">人列計算機</div>
+          <div className="font-brush text-[24px] text-paper">人列计算机</div>
           <div className="text-[11px]" style={{ color: 'var(--earth-300)' }}>三體人列計算機模擬</div>
         </div>
       </div>

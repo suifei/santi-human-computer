@@ -5,7 +5,7 @@ import { drumHit } from '@/sim/audio';
 import { DrumButton } from './common';
 import { asset } from '@/lib/utils';
 
-const TITLE = '人列計算機';
+const TITLE = '人列计算机';
 
 export default function LoadingScreen({ onEnter }: { onEnter: () => void }) {
   const [progress, setProgress] = useState(0);

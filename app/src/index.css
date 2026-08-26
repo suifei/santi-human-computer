@@ -68,7 +68,7 @@
 }
 
 @layer utilities {
-  .font-brush { font-family: 'Ma Shan Zheng', 'Noto Serif SC', serif; }
+  .font-brush { font-family: 'Ma Shan Zheng', 'Iansui', 'Noto Serif SC', serif; }
   .font-song { font-family: 'Noto Serif SC', serif; }
   .font-hei { font-family: 'Noto Sans SC', sans-serif; }
   .font-mono-num { font-family: 'JetBrains Mono', monospace; }
