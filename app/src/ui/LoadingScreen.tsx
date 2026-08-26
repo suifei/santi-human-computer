@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { drumHit } from '@/sim/audio';
 import { DrumButton } from './common';
+import { asset } from '@/lib/utils';
 
 const TITLE = '人列計算機';
 
@@ -42,7 +43,7 @@ export default function LoadingScreen({ onEnter }: { onEnter: () => void }) {
         >
           {/* 印章：盖章式落下 */}
           <motion.img
-            src="/logo-seal.svg"
+            src={asset('logo-seal.svg')}
             alt="人列印章"
             width={120}
             height={120}

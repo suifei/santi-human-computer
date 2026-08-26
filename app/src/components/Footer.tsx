@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { asset } from '@/lib/utils';
 
 /** Footer（design.md §9.2）：深底 + 青铜渐变分隔线 + 三列 */
 export default function Footer() {
@@ -10,7 +11,7 @@ export default function Footer() {
       />
       <div className="mx-auto max-w-6xl px-6 py-12 grid gap-10 md:grid-cols-3">
         <div className="flex items-start gap-3">
-          <img src="/logo-seal.svg" alt="印章" width={36} height={36} className="rounded-sm mt-0.5" />
+          <img src={asset('logo-seal.svg')} alt="印章" width={36} height={36} className="rounded-sm mt-0.5" />
           <div>
             <div className="font-song font-semibold text-paper">人列计算机 · 三体模拟</div>
             <div className="mt-1 text-[12px] leading-relaxed" style={{ color: 'var(--earth-500)' }}>

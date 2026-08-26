@@ -5,13 +5,14 @@ import { useFrame, useLoader } from '@react-three/fiber';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { useSim } from '@/sim/store';
 import { makeSignTexture } from './textures';
+import { asset } from '@/lib/utils';
 
 const now = () => performance.now() / 1000;
 
 /* ================= 天空穹顶：贴图 + 三段渐变 fallback ================= */
 function SkyDome() {
   const matRef = useRef<THREE.ShaderMaterial>(null!);
-  const tex = useLoader(THREE.TextureLoader, '/sky-day.jpg');
+  const tex = useLoader(THREE.TextureLoader, asset('sky-day.jpg'));
   const uniforms = useMemo(() => ({
     tSky: { value: tex },
   }), [tex]);
@@ -55,7 +56,7 @@ function SkyDome() {
 
 /* ================= 地面 + 地格 + 区块金线 ================= */
 function Ground() {
-  const tex = useLoader(THREE.TextureLoader, '/ground-rammed-earth.jpg');
+  const tex = useLoader(THREE.TextureLoader, asset('ground-rammed-earth.jpg'));
   useEffect(() => {
     // eslint-disable-next-line react-hooks/immutability -- three.js 纹理属性需就地设置
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;

@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import SectionTitle from '@/components/SectionTitle';
+import { asset } from '@/lib/utils';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -97,7 +98,7 @@ export default function StorySection() {
         >
           <img
             ref={imgRef}
-            src="/story-illustration.png"
+            src={asset('story-illustration.png')}
             alt="监军台视角：将军剪影俯瞰举旗方阵，战鼓与火把映红暮色"
             className="h-auto w-full scale-[1.15] object-cover will-change-transform"
           />

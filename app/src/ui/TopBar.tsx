@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, VolumeX, CircleHelp } from 'lucide-react';
 import { useSim } from '@/sim/store';
+import { asset } from '@/lib/utils';
 
 export default function TopBar() {
   const muted = useSim((s) => s.muted);
@@ -20,7 +21,7 @@ export default function TopBar() {
       style={{ background: 'linear-gradient(to bottom, rgba(23,16,11,0.72), rgba(23,16,11,0))' }}
     >
       <div className="flex items-center gap-2.5">
-        <img src="/logo-seal.svg" alt="印章" width={28} height={28} className="rounded-sm" />
+        <img src={asset('logo-seal.svg')} alt="印章" width={28} height={28} className="rounded-sm" />
         <div className="leading-tight">
           <div className="font-brush text-[24px] text-paper">人列計算機</div>
           <div className="text-[11px]" style={{ color: 'var(--earth-300)' }}>三體人列計算機模擬</div>

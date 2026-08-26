@@ -1,5 +1,6 @@
 import { Link, NavLink, useLocation } from 'react-router';
 import { motion } from 'framer-motion';
+import { asset } from '@/lib/utils';
 
 const NAV = [
   { to: '/', label: '演算场' },
@@ -21,7 +22,7 @@ export default function Navbar() {
       }}
     >
       <Link to="/" className="flex items-center gap-3 group">
-        <img src="/logo-seal.svg" alt="人列计算机印章" width={32} height={32} className="rounded-sm" />
+        <img src={asset('logo-seal.svg')} alt="人列计算机印章" width={32} height={32} className="rounded-sm" />
         <span className="font-song font-semibold text-[18px] text-paper tracking-[0.02em] group-hover:text-gold transition-colors">
           人列计算机
         </span>

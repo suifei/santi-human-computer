@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
+import { asset } from '@/lib/utils';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -167,7 +168,7 @@ export default function HeroSection() {
       {/* 背景插画 + 视差 */}
       <div ref={bgRef} className="absolute inset-0 will-change-transform">
         <img
-          src="/principle-hero.png"
+          src={asset('principle-hero.png')}
           alt="黄昏下秦军士兵方阵组成的人列计算机，士兵举着红蓝旗帜"
           className="h-full w-full object-cover"
         />
