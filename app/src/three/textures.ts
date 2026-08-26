@@ -33,7 +33,7 @@ export function makeFlagTexture(isRed: boolean): THREE.CanvasTexture {
 
   // 中央白色篆意大字
   g.fillStyle = '#F6EFDD';
-  g.font = '190px "Ma Shan Zheng", "Iansui", "Noto Serif SC", serif';
+  g.font = '190px "LXGW WenKai TC", "Iansui", "Noto Serif SC", serif';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   g.fillText(isRed ? '壹' : '零', w / 2, h / 2 + 8);
@@ -86,7 +86,7 @@ export function makeSignTexture(text: string): THREE.CanvasTexture {
   g.lineWidth = 8;
   g.strokeRect(10, 10, w - 20, h - 20);
   g.fillStyle = '#D4A952';
-  g.font = '118px "Ma Shan Zheng", "Iansui", "Noto Serif SC", serif';
+  g.font = '118px "LXGW WenKai TC", "Iansui", "Noto Serif SC", serif';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   const chars = [...text];

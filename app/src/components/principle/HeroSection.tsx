@@ -195,10 +195,10 @@ export default function HeroSection() {
         </div>
         <h1
           ref={titleRef}
-          className="font-brush leading-[1.1] tracking-[0.04em] text-paper"
+          className="font-brush font-bold leading-[1.1] tracking-[0.04em] text-paper"
           style={{ fontSize: 'clamp(3.5rem, 9vw, 7.5rem)', textShadow: '0 4px 32px rgba(23,16,11,0.8)' }}
         >
-          {'人列计算机'.split('').map((ch, i) => (
+          {'人列計算機'.split('').map((ch, i) => (
             <span key={i} data-char className="inline-block will-change-transform">
               {ch}
             </span>

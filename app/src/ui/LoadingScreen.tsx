@@ -5,7 +5,7 @@ import { drumHit } from '@/sim/audio';
 import { DrumButton } from './common';
 import { asset } from '@/lib/utils';
 
-const TITLE = '人列计算机';
+const TITLE = '人列計算機';
 
 export default function LoadingScreen({ onEnter }: { onEnter: () => void }) {
   const [progress, setProgress] = useState(0);
@@ -53,7 +53,7 @@ export default function LoadingScreen({ onEnter }: { onEnter: () => void }) {
             transition={{ type: 'spring', stiffness: 300, damping: 15, mass: 0.9 }}
           />
           {/* 书法标题：逐字自右向左展开 */}
-          <h1 className="mt-8 flex font-brush text-paper" style={{ fontSize: 'clamp(3.5rem, 9vw, 7rem)', letterSpacing: '0.04em', lineHeight: 1.1 }}>
+          <h1 className="mt-8 flex font-brush font-bold text-paper" style={{ fontSize: 'clamp(3.5rem, 9vw, 7rem)', letterSpacing: '0.04em', lineHeight: 1.1 }}>
             {[...TITLE].map((c, i) => (
               <motion.span
                 key={i}
