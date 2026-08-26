@@ -13,7 +13,7 @@ export default function Footer() {
         <div className="flex items-start gap-3">
           <img src={asset('logo-seal.svg')} alt="印章" width={36} height={36} className="rounded-sm mt-0.5" />
           <div>
-            <div className="font-song font-semibold text-paper">人列计算机 · 三体模拟</div>
+            <div className="font-brush text-paper tracking-[0.08em]">人列計算機</div>
             <div className="mt-1 text-[12px] leading-relaxed" style={{ color: 'var(--earth-500)' }}>
               红 = 1 · 蓝 = 0 · 鼓响为令
             </div>

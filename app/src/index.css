@@ -1,3 +1,5 @@
+@import './assets/fonts/fonts.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -48,7 +50,7 @@
   html {
     background-color: var(--ink);
     color: var(--sand);
-    font-family: 'Noto Sans SC', system-ui, sans-serif;
+    font-family: 'Qiji', serif;
   }
 
   body {
@@ -68,9 +70,9 @@
 }
 
 @layer utilities {
-  .font-brush { font-family: 'LXGW WenKai TC', 'Iansui', 'Noto Serif SC', serif; }
-  .font-song { font-family: 'Noto Serif SC', serif; }
-  .font-hei { font-family: 'Noto Sans SC', sans-serif; }
+  .font-brush { font-family: 'ShuowenSeal', 'Qiji', serif; }
+  .font-song { font-family: 'Qiji', serif; }
+  .font-hei { font-family: 'Qiji', serif; }
   .font-mono-num { font-family: 'JetBrains Mono', monospace; }
 
   .panel {

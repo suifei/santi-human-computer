@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { drumHit } from '@/sim/audio';
 import { DrumButton } from './common';
 import { asset } from '@/lib/utils';
+import { waitAppFonts } from '@/lib/fonts';
 
 const TITLE = '人列計算機';
 
@@ -13,13 +14,15 @@ export default function LoadingScreen({ onEnter }: { onEnter: () => void }) {
   const [gone, setGone] = useState(false);
 
   useEffect(() => {
-    // 资产均为程序化生成/极小贴图，进度条以短计时呈现
     const t0 = performance.now();
     let raf = 0;
+    let fontsReady = false;
+    waitAppFonts().then(() => { fontsReady = true; });
     const step = () => {
-      const p = Math.min(1, (performance.now() - t0) / 1400);
-      setProgress(p);
-      if (p < 1) raf = requestAnimationFrame(step);
+      const timed = Math.min(1, (performance.now() - t0) / 1400);
+      setProgress(fontsReady ? timed : Math.min(0.9, timed));
+      if (!(fontsReady && timed >= 1)) raf = requestAnimationFrame(step);
+      else setProgress(1);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
@@ -53,7 +56,7 @@ export default function LoadingScreen({ onEnter }: { onEnter: () => void }) {
             transition={{ type: 'spring', stiffness: 300, damping: 15, mass: 0.9 }}
           />
           {/* 书法标题：逐字自右向左展开 */}
-          <h1 className="mt-8 flex font-brush font-bold text-paper" style={{ fontSize: 'clamp(3.5rem, 9vw, 7rem)', letterSpacing: '0.04em', lineHeight: 1.1 }}>
+          <h1 className="mt-8 flex font-brush text-paper" style={{ fontSize: 'clamp(3.5rem, 9vw, 7rem)', letterSpacing: '0.08em', lineHeight: 1.2 }}>
             {[...TITLE].map((c, i) => (
               <motion.span
                 key={i}

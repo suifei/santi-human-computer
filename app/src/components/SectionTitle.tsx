@@ -19,7 +19,7 @@ export default function SectionTitle({
   return (
     <div className={cn('flex items-center gap-4', className)}>
       <motion.div
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] font-song text-[20px] font-bold leading-none text-white select-none"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] font-brush text-[20px] leading-none text-white select-none"
         style={{ background: 'var(--seal)', boxShadow: '0 2px 8px rgba(23,16,11,0.4)' }}
         initial={{ scale: 1.6, rotate: 8, opacity: 0 }}
         whileInView={{ scale: 1, rotate: 0, opacity: 1 }}

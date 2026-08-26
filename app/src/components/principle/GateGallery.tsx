@@ -154,7 +154,7 @@ function GateCard({ gate, index }: { gate: GateDef; index: number }) {
       {/* 头部：印章 + 名称 + 口诀 */}
       <div className="flex items-center gap-3">
         <div
-          className="flex h-10 w-10 items-center justify-center rounded-[4px] font-song text-[20px] font-bold text-white select-none"
+          className="flex h-10 w-10 items-center justify-center rounded-[4px] font-brush text-[20px] text-white select-none"
           style={{ background: 'var(--seal)' }}
         >
           {gate.seal}

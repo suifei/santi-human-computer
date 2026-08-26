@@ -25,7 +25,7 @@ export function DrumButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'rounded-md border-2 font-medium tracking-[0.06em] text-paper disabled:opacity-40 disabled:cursor-not-allowed',
+        'rounded-md border-2 font-hei font-medium tracking-[0.06em] text-paper disabled:opacity-40 disabled:cursor-not-allowed',
         className,
       )}
       style={{

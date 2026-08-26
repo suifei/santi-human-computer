@@ -23,8 +23,8 @@ export default function Navbar() {
     >
       <Link to="/" className="flex items-center gap-3 group">
         <img src={asset('logo-seal.svg')} alt="人列计算机印章" width={32} height={32} className="rounded-sm" />
-        <span className="font-song font-semibold text-[18px] text-paper tracking-[0.02em] group-hover:text-gold transition-colors">
-          人列计算机
+        <span className="font-brush text-[18px] text-paper tracking-[0.08em] group-hover:text-gold transition-colors">
+          人列計算機
         </span>
       </Link>
       <nav className="flex items-center gap-7">

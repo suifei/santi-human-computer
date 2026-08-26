@@ -1,11 +1,12 @@
 /** 环境：天空穹顶、夯土地面与地格、区域木牌、远景营帐、鼓台、监军台、火把（白昼场景） */
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { useSim } from '@/sim/store';
 import { makeSignTexture } from './textures';
 import { asset } from '@/lib/utils';
+import { waitAppFonts } from '@/lib/fonts';
 
 const now = () => performance.now() / 1000;
 
@@ -121,7 +122,9 @@ const SIGNS: { text: string; pos: [number, number]; rotY: number }[] = [
 ];
 
 function ZoneSigns() {
-  const textures = useMemo(() => SIGNS.map((s) => makeSignTexture(s.text)), []);
+  const [fontsReady, setFontsReady] = useState(false);
+  useEffect(() => { waitAppFonts().then(() => setFontsReady(true)); }, []);
+  const textures = useMemo(() => SIGNS.map((s) => makeSignTexture(s.text)), [fontsReady]);
   return (
     <group>
       {SIGNS.map((s, i) => (

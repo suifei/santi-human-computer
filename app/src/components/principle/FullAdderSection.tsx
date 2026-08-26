@@ -227,7 +227,7 @@ export default function FullAdderSection() {
                     fill={active ? '#FFFFFF' : 'var(--earth-300)'}
                     fontSize={active ? 18 : 11}
                     fontWeight={700}
-                    fontFamily={active ? "'JetBrains Mono', monospace" : "'Noto Sans SC', sans-serif"}
+                    fontFamily={active ? "'JetBrains Mono', monospace" : 'Qiji, serif'}
                   >
                     {active ? n.value : n.gate}
                   </text>

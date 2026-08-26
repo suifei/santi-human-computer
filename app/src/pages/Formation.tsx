@@ -45,7 +45,7 @@ function PageHeader() {
           陣
         </motion.span>
         <motion.h1
-          className="mt-6 font-song font-bold text-paper tracking-[0.02em]"
+          className="mt-6 font-brush text-paper tracking-[0.08em]"
           style={{ fontSize: 'clamp(2.25rem, 5vw, 3.5rem)', lineHeight: 1.2 }}
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

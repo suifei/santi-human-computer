@@ -1,0 +1,7 @@
+小篆标题：全字庫說文解字（EBAS）
+来源 https://www.cns11643.gov.tw/
+授权：政府资料开放授权条款第一版（亦可 OFL 1.1）
+
+按钮与信息：齊伋體（黄令东 / Lingdong Huang）
+来源 https://github.com/LingDong-/qiji-font
+授权：SIL Open Font License 1.1（见 OFL-qiji.txt）

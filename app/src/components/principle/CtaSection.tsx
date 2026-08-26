@@ -21,7 +21,7 @@ export default function CtaSection() {
       />
 
       <h2
-        className="relative font-brush leading-[1.1] tracking-[0.04em] text-paper"
+        className="relative font-brush leading-[1.15] tracking-[0.08em] text-paper"
         style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)' }}
       >
         {'萬軍已列陣'.split('').map((ch, i) => (

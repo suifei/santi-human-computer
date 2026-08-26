@@ -304,6 +304,10 @@ export const useSim = create<SimStore>((set, get) => {
   };
 });
 
+if (typeof window !== 'undefined') {
+  (window as unknown as { __santiSim: typeof useSim }).__santiSim = useSim;
+}
+
 /** 当前激活层的质心（跟随信号机位用） */
 export function activeLayerCentroid(nl: Netlist, tick: number): [number, number] {
   const t = Math.max(1, Math.min(tick, nl.maxLayer));

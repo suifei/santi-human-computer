@@ -1,0 +1,15 @@
+@font-face {
+  font-family: "ShuowenSeal";
+  src: url("./shuowen-seal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Qiji";
+  src: url("./qiji.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}

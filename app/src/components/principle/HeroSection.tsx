@@ -188,14 +188,14 @@ export default function HeroSection() {
       <div className="relative z-10 flex flex-col items-center px-6 pb-24 pt-40 text-center">
         <div
           ref={sealRef}
-          className="mb-7 flex h-14 w-14 items-center justify-center rounded-[5px] font-song text-[30px] font-bold text-white select-none"
+          className="mb-7 flex h-14 w-14 items-center justify-center rounded-[5px] font-brush text-[30px] text-white select-none"
           style={{ background: 'var(--seal)', boxShadow: '0 4px 20px rgba(23,16,11,0.6), inset 0 0 0 2px rgba(232,220,195,0.15)' }}
         >
           理
         </div>
         <h1
           ref={titleRef}
-          className="font-brush font-bold leading-[1.1] tracking-[0.04em] text-paper"
+          className="font-brush leading-[1.15] tracking-[0.08em] text-paper"
           style={{ fontSize: 'clamp(3.5rem, 9vw, 7.5rem)', textShadow: '0 4px 32px rgba(23,16,11,0.8)' }}
         >
           {'人列計算機'.split('').map((ch, i) => (

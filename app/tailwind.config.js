@@ -67,9 +67,9 @@ module.exports = {
         xs: "calc(var(--radius) - 6px)",
       },
       fontFamily: {
-        brush: ["'LXGW WenKai TC'", "Iansui", "'Noto Serif SC'", "serif"],
-        song: ["'Noto Serif SC'", "serif"],
-        hei: ["'Noto Sans SC'", "sans-serif"],
+        brush: ["ShuowenSeal", "Qiji", "serif"],
+        song: ["Qiji", "serif"],
+        hei: ["Qiji", "serif"],
         mono: ["'JetBrains Mono'", "monospace"],
       },
       boxShadow: {

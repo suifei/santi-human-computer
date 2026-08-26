@@ -2,12 +2,13 @@
  * 士兵方阵：4 个 InstancedMesh（躯干 / 头 / 臂+旗杆 / 旗帜），
  * 翻旗动画（320ms back.out）与待机摆动全部在着色器内完成，CPU 仅写实例属性。
  */
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { useSim } from '@/sim/store';
 import { makeFlagTexture } from './textures';
+import { waitAppFonts } from '@/lib/fonts';
 
 const now = () => performance.now() / 1000;
 
@@ -196,8 +197,10 @@ export default function Soldiers() {
   }, [netlist]);
 
   /* ---------- 材质 ---------- */
-  const flagTexRed = useMemo(() => makeFlagTexture(true), []);
-  const flagTexBlue = useMemo(() => makeFlagTexture(false), []);
+  const [fontsReady, setFontsReady] = useState(false);
+  useEffect(() => { waitAppFonts().then(() => setFontsReady(true)); }, []);
+  const flagTexRed = useMemo(() => makeFlagTexture(true), [fontsReady]);
+  const flagTexBlue = useMemo(() => makeFlagTexture(false), [fontsReady]);
   const mats = useMemo(() => {
     shaderRefs.length = 0;
     const std = (extra?: { isPole?: boolean }) => {
