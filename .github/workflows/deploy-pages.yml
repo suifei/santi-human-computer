@@ -40,6 +40,9 @@ jobs:
         run: |
           npm run build -- --base /${{ github.event.repository.name }}/
           cp dist/index.html dist/404.html
+          mkdir -p dist/principle dist/formation
+          cp dist/index.html dist/principle/index.html
+          cp dist/index.html dist/formation/index.html
           touch dist/.nojekyll
 
       - uses: actions/configure-pages@v5
