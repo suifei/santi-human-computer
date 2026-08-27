@@ -9,6 +9,15 @@
 
 《三体》里，秦始皇用三千万士兵组成人列计算机。这里把它缩进浏览器：每位士兵是一扇逻辑门，红旗 = 1，蓝旗 = 0。鼓点一响，全阵同时翻旗，把 `(A + B) × C` 算完。
 
+**Human-Array Computer**  
+*Qin-dynasty soldiers as gates. Red flag = 1, blue flag = 0.*
+
+In *The Three-Body Problem*, Qin Shi Huang builds a computer from thirty million soldiers. This shrinks that field into a browser: each soldier is a gate (AND / OR / XOR / NOT). A drumbeat, and the whole array flips at once.
+
+- **Default campaign** — unsigned 10-bit `(A + B) × C`: **932 gates / 62 ticks / 21-bit output**. Example `(1013 + 1012) × 1001 = 2027025`. Widths 10 / 16 / 32; at most three binary ops; output ≤ 65 bits. Flags are live truth values, not a JavaScript result played back as animation.
+- **Program mode** — one fixed CPU field (registers, add / sub / mul / div, and compare, all standing). Instructions activate units; they do not rebuild the army. 10-bit: **2266 gates**. `(A+B)*C` is add, then mul.
+- **Live** — [open the yard](https://suifei.github.io/santi-human-computer/) · [v1.2](https://github.com/suifei/santi-human-computer/releases/tag/v1.2)
+
 <p align="center">
   <a href="https://suifei.github.io/santi-human-computer/"><strong>打开演算场</strong></a>
   ·
