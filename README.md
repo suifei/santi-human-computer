@@ -99,3 +99,9 @@ npm install --replace-registry-host=always --registry https://registry.npmmirror
 当前发布 [v1.2](https://github.com/suifei/santi-human-computer/releases/tag/v1.2)。推送到 `main` 会自动构建并发布到 GitHub Pages。
 
 Vite 7 · React 19 · TypeScript · Three.js / React Three Fiber · Zustand · Tailwind。人与旗共用一套 InstancedMesh，下标即 `gate.index`。默认 932 人一批绘制；程序档 10 位 2266 人同样一批。
+
+## 许可证 / License
+
+以 [MIT 许可证](LICENSE) 发布。  
+Released under the [MIT License](LICENSE).
+
