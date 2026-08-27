@@ -1,4 +1,4 @@
-/** 按用户构图重拍三张 README 图：演算场指令卡、原理整页、阵图整页 */
+/** 重拍 README 演算场图：全景军令、俯瞰、程序档 CPU、程序近景 */
 import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -6,54 +6,15 @@ import { chromium } from 'playwright'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const out = join(root, 'docs', 'screenshots')
-const origin = process.env.CAPTURE_URL ?? 'http://127.0.0.1:4173'
+const origin = process.env.CAPTURE_URL ?? 'http://127.0.0.1:5175'
 
 await mkdir(out, { recursive: true })
 
 const browser = await chromium.launch({
-  channel: 'msedge',
-  headless: true,
-  args: ['--ignore-gpu-blocklist', '--enable-webgl'],
+  channel: process.env.CAPTURE_CHANNEL ?? 'chrome',
+  headless: process.env.CAPTURE_HEADLESS === '1',
+  args: ['--ignore-gpu-blocklist', '--enable-webgl', '--use-gl=angle'],
 })
-
-async function waitFonts(page) {
-  await page.evaluate(async () => {
-    await document.fonts.ready
-    await document.fonts.load('400 64px ShuowenSeal')
-    await document.fonts.load('400 32px Qiji')
-  })
-  await page.waitForTimeout(400)
-}
-
-/** 滚完整页，让 whileInView / GSAP 落到终态 */
-async function revealPage(page) {
-  const height = await page.evaluate(() => document.documentElement.scrollHeight)
-  for (let y = 0; y < height; y += 420) {
-    await page.evaluate((yy) => window.scrollTo(0, yy), y)
-    await page.waitForTimeout(120)
-  }
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
-  await page.waitForTimeout(500)
-}
-
-/** 拆掉 ScrollTrigger pin，避免整页截图像被拉长 */
-async function unpin(page) {
-  await page.evaluate(() => {
-    document.querySelectorAll('.pin-spacer').forEach((spacer) => {
-      const pinned = spacer.firstElementChild
-      if (!pinned) return
-      spacer.parentNode?.insertBefore(pinned, spacer)
-      const el = pinned
-      el.style.removeProperty('position')
-      el.style.removeProperty('top')
-      el.style.removeProperty('left')
-      el.style.removeProperty('width')
-      el.style.removeProperty('margin')
-      el.style.removeProperty('z-index')
-      spacer.remove()
-    })
-  })
-}
 
 const page = await browser.newPage({
   viewport: { width: 1600, height: 900 },
@@ -61,42 +22,49 @@ const page = await browser.newPage({
 })
 
 await page.goto(`${origin}/`, { waitUntil: 'networkidle', timeout: 60000 })
+await page.waitForFunction(() => window.__santiSim, { timeout: 30000 })
+await page.evaluate(() => {
+  const s = window.__santiSim.getState()
+  if (!s.muted) s.toggleMute()
+})
 await page.getByRole('button', { name: '擊鼓入陣' }).click({ timeout: 20000, force: true })
 await page.getByText('演算场', { exact: true }).waitFor({ timeout: 15000 })
-await page.waitForTimeout(5000)
 await page.locator('canvas').waitFor()
-await waitFonts(page)
+await page.evaluate(async () => {
+  await document.fonts.ready
+  try { await document.fonts.load('400 64px ShuowenSeal') } catch {}
+  try { await document.fonts.load('400 32px Qiji') } catch {}
+})
+await page.waitForTimeout(4200)
 
-await page.evaluate(() => window.__santiSim?.getState().select(600))
-await page.waitForTimeout(120)
-await page.evaluate(() => window.__santiSim?.getState().setPreset('input'))
+await page.evaluate(() => window.__santiSim.getState().inject())
+await page.waitForFunction(() => window.__santiSim.getState().status === 'READY', { timeout: 15000 })
+await page.waitForTimeout(800)
+await page.evaluate(() => window.__santiSim.getState().setPreset('overview'))
 await page.waitForTimeout(1600)
+await page.mouse.move(1580, 20)
 await page.screenshot({ path: join(out, '01-yard.png') })
 
-const long = await browser.newPage({
-  viewport: { width: 1400, height: 900 },
-  deviceScaleFactor: 1,
-})
+await page.evaluate(() => window.__santiSim.getState().setPreset('top'))
+await page.waitForTimeout(1600)
+await page.mouse.move(1580, 20)
+await page.screenshot({ path: join(out, '01-yard-top.png') })
 
-await long.goto(`${origin}/principle`, { waitUntil: 'networkidle', timeout: 60000 })
-await waitFonts(long)
-await long.waitForTimeout(800)
-await revealPage(long)
-await unpin(long)
-await long.evaluate(() => window.scrollTo(0, 0))
-await long.waitForTimeout(400)
-await long.screenshot({ path: join(out, '02-principle.png'), fullPage: true })
+await page.evaluate(() => window.__santiSim.getState().setMode('program'))
+await page.waitForFunction(() => window.__santiSim.getState().netlist.stats.total === 2266, { timeout: 20000 })
+await page.waitForTimeout(2400)
+await page.evaluate(() => window.__santiSim.getState().setPreset('overview'))
+await page.waitForTimeout(1500)
+await page.mouse.move(800, 430)
+await page.mouse.wheel(0, -320)
+await page.waitForTimeout(800)
+await page.mouse.move(1580, 20)
+await page.screenshot({ path: join(out, '04-program.png') })
 
-await long.goto(`${origin}/formation`, { waitUntil: 'networkidle', timeout: 60000 })
-await waitFonts(long)
-await long.waitForTimeout(800)
-await revealPage(long)
-const zone = long.getByLabel(/输入手·甲/)
-if (await zone.count()) await zone.first().click()
-await long.waitForTimeout(400)
-await long.evaluate(() => window.scrollTo(0, 0))
-await long.waitForTimeout(300)
-await long.screenshot({ path: join(out, '03-formation.png'), fullPage: true })
+await page.evaluate(() => window.__santiSim.getState().setPreset('input'))
+await page.waitForTimeout(1500)
+await page.mouse.move(1580, 20)
+await page.screenshot({ path: join(out, '05-program-input.png') })
 
 await browser.close()
 console.log('saved', out)
