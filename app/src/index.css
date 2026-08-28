@@ -50,7 +50,7 @@
   html {
     background-color: var(--ink);
     color: var(--sand);
-    font-family: 'Qiji', serif;
+    font-family: 'QinYardXingKai', 'QinYardKai', serif;
   }
 
   body {
@@ -70,9 +70,9 @@
 }
 
 @layer utilities {
-  .font-brush { font-family: 'ShuowenSeal', 'Qiji', serif; }
-  .font-song { font-family: 'Qiji', serif; }
-  .font-hei { font-family: 'Qiji', serif; }
+  .font-brush { font-family: 'ShuowenSeal', 'QinYardXingKai', 'QinYardKai', serif; }
+  .font-song { font-family: 'QinYardXingKai', 'QinYardKai', serif; }
+  .font-hei { font-family: 'QinYardXingKai', 'QinYardKai', serif; }
   .font-mono-num { font-family: 'JetBrains Mono', monospace; }
 
   .panel {
@@ -87,8 +87,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
-    letter-spacing: 0.12em;
+    font-size: 15px;
+    letter-spacing: 0.08em;
     color: var(--bronze);
   }
   .panel-title::before {

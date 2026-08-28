@@ -56,7 +56,7 @@ function InputRow({ label, k }: { label: string; k: 'A' | 'B' | 'C' }) {
           value={value}
           disabled={locked}
           onChange={(e) => commit(e.target.value)}
-          aria-label={`输入 ${label}`}
+          aria-label={`輸入 ${label}`}
           className="w-36 rounded-sm border px-2 py-1 font-mono text-[16px] text-paper outline-none disabled:opacity-50"
           style={{
             background: 'rgba(23,16,11,0.6)',
@@ -72,7 +72,7 @@ function InputRow({ label, k }: { label: string; k: 'A' | 'B' | 'C' }) {
               key={d}
               type="button"
               disabled={locked}
-              aria-label={d > 0 ? '加一' : '减一'}
+              aria-label={d > 0 ? '加一' : '減一'}
               className="rounded-sm border p-1 transition-colors hover:border-gold disabled:opacity-40"
               style={{ borderColor: 'rgba(176,138,79,0.35)', color: 'var(--bronze)' }}
               onClick={() => setInput(k, value + d)}
@@ -84,7 +84,7 @@ function InputRow({ label, k }: { label: string; k: 'A' | 'B' | 'C' }) {
       </div>
       {err && (
         <span className="text-[11px]" style={{ color: 'var(--flag-red-bright)' }}>
-          请输入 0–{max.toLocaleString('en-US')} 的整数
+          請輸入 0–{max.toLocaleString('en-US')} 的整數
         </span>
       )}
       <BitRow value={value} bits={bits} />
@@ -115,7 +115,7 @@ export default function InputPanel() {
 
   const commitExpr = () => {
     const ok = setExpr(draft);
-    setExprErr(ok ? '' : '军令未采纳');
+    setExprErr(ok ? '' : '軍令未採納');
     if (ok) setDraft(useSim.getState().expr);
   };
 
@@ -123,7 +123,7 @@ export default function InputPanel() {
     <Panel title="輸入令" className="flex max-h-full min-h-0 w-[320px] flex-col overflow-hidden [&_.panel-title]:shrink-0">
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1">
         <div className="flex gap-1">
-          {([['expr', '军令'], ['program', '程序']] as const).map(([k, label]) => (
+          {([['expr', '軍令'], ['program', '程序']] as const).map(([k, label]) => (
             <button
               key={k}
               type="button"
@@ -141,7 +141,7 @@ export default function InputPanel() {
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[12px]" style={{ color: 'var(--earth-300)' }}>位宽</span>
+          <span className="text-[12px]" style={{ color: 'var(--earth-300)' }}>位寬</span>
           {BIT_WIDTHS.map((b) => (
             <button
               key={b}
@@ -185,7 +185,7 @@ export default function InputPanel() {
               onChange={(e) => setDraft(e.target.value)}
               onBlur={commitExpr}
               onKeyDown={(e) => { if (e.key === 'Enter') commitExpr(); }}
-              aria-label="军令表达式"
+              aria-label="軍令運算式"
               className="w-full rounded-sm border px-2 py-1 font-mono text-[13px] text-paper outline-none disabled:opacity-50"
               style={{
                 background: 'rgba(23,16,11,0.6)',
@@ -228,7 +228,7 @@ export default function InputPanel() {
               }}
             />
             <p className="mt-1 text-[11px] leading-relaxed" style={{ color: 'var(--earth-500)' }}>
-              数据通路一次列齐：寄存器、加减乘除、比较都在。循环请用较小的乙 B。
+              資料通路一次列齊：寄存器、加減乘除、比較都在。循環請用較小的乙 B。
             </p>
           </div>
         )}
@@ -243,7 +243,7 @@ export default function InputPanel() {
           style={{ borderColor: 'rgba(176,138,79,0.35)', color: 'var(--bronze)' }}
         >
           {mode === 'program'
-            ? '示例输入：A=7 B=5'
+            ? '示例輸入：A=7 B=5'
             : bits === 10 ? '示例：(1013+1012)×1001' : '示例：A=1013 B=1012 C=1001'}
         </button>
       </div>
@@ -252,12 +252,12 @@ export default function InputPanel() {
         style={{ borderColor: 'rgba(176,138,79,0.28)' }}
       >
         <DrumButton className="w-full py-2.5 text-[15px]" onClick={inject} disabled={busy}>
-          {mode === 'program' ? '加载程序' : '注入方阵'}
+          {mode === 'program' ? '載入程序' : '注入方陣'}
         </DrumButton>
         <p className="text-[11px]" style={{ color: 'var(--earth-500)' }}>
           {mode === 'program'
-            ? `数据通路全员列阵 · ${bits} 位 · ${gates} 门`
-            : `${displayExpr(expr)} · ${bits} 位无符号 · ${gates} 门 / ${maxLayer} 拍${expr.includes('-') ? ' · 减法按无符号环绕' : ''}`}
+            ? `資料通路全員列陣 · ${bits} 位 · ${gates} 門`
+            : `${displayExpr(expr)} · ${bits} 位無符號 · ${gates} 門 / ${maxLayer} 拍${expr.includes('-') ? ' · 減法按無符號環繞' : ''}`}
         </p>
       </div>
     </Panel>

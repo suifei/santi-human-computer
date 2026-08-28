@@ -7,7 +7,7 @@ export default function CtaSection() {
   return (
     <section
       className="relative flex min-h-[60vh] flex-col items-center justify-center overflow-hidden px-6 py-24 text-center"
-      aria-label="进入演算场"
+      aria-label="進入演算場"
     >
       {/* 极低透明度的方阵点阵背景 */}
       <div
@@ -45,7 +45,7 @@ export default function CtaSection() {
         viewport={{ once: true, amount: 0.5 }}
         transition={{ duration: 0.6, delay: 0.9 }}
       >
-        亲手击鼓，看红旗与蓝旗算出 2027025。
+        親手擊鼓，看紅旗與藍旗算出 2027025。
       </motion.p>
 
       <motion.div

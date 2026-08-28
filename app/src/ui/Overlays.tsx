@@ -8,13 +8,13 @@ export function Legend() {
   return (
     <div className="panel pointer-events-auto flex items-center gap-4 px-3 py-2 text-[12px]" style={{ color: 'var(--sand)' }}>
       <span className="flex items-center gap-1.5">
-        <i className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: 'var(--flag-red)' }} /> 红旗 = 1
+        <i className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: 'var(--flag-red)' }} /> 紅旗 = 1
       </span>
       <span className="flex items-center gap-1.5">
-        <i className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: 'var(--flag-blue)' }} /> 蓝旗 = 0
+        <i className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: 'var(--flag-blue)' }} /> 藍旗 = 0
       </span>
       <span className="flex items-center gap-1.5">
-        <span style={{ color: 'var(--gold)' }}>♪</span> 鼓响 = 同时举旗
+        <span style={{ color: 'var(--gold)' }}>♪</span> 鼓響 = 同時舉旗
       </span>
     </div>
   );
@@ -47,11 +47,12 @@ export function Toasts() {
 /* ---------- 机位按钮组（右下） ---------- */
 const PRESET_BTNS: { key: Preset; label: string; hotkey: string }[] = [
   { key: 'overview', label: '全景', hotkey: '1' },
-  { key: 'top', label: '俯瞰布阵', hotkey: '2' },
+  { key: 'top', label: '俯瞰布陣', hotkey: '2' },
   { key: 'input', label: '注入列', hotkey: '3' },
   { key: 'drum', label: '鼓台', hotkey: '4' },
-  { key: 'output', label: '输出端', hotkey: '5' },
-  { key: 'follow', label: '跟随信号', hotkey: 'F' },
+  { key: 'output', label: '輸出端', hotkey: '5' },
+  { key: 'command', label: '監軍台', hotkey: '6' },
+  { key: 'follow', label: '跟隨信號', hotkey: 'F' },
 ];
 
 export function CameraPresets() {

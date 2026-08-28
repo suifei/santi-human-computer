@@ -4,3 +4,7 @@ dist
 scripts/netlist-bundle.mjs
 scripts/program-bundle.mjs
 tmp-fonts
+scripts/__pycache__/
+public/models/_source-qin.glb
+public/models/_tmp/
+public/models/source-thumb.jpg

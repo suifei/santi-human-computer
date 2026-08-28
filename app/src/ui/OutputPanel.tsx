@@ -65,22 +65,22 @@ export default function OutputPanel() {
     <Panel title="戰果" className="flex w-[320px] max-h-full flex-col overflow-hidden">
       {status === 'IDLE' || status === 'LOADING' ? (
         <p className="text-[13px] leading-relaxed" style={{ color: 'var(--earth-500)' }}>
-          等待注入 —— 大军列阵，静候将令
+          等待注入 —— 大軍列陣，靜候將令
         </p>
       ) : (
         <div className="min-h-0 space-y-3 overflow-y-auto overscroll-contain">
-          <div className="flex max-h-28 flex-wrap gap-[2px] overflow-y-auto" aria-label="二进制结果">
+          <div className="flex max-h-28 flex-wrap gap-[2px] overflow-y-auto" aria-label="二進位結果">
             {liveBits.map((b, i) => (
               <span key={i} style={{ marginLeft: i > 0 && (nOut - i) % 4 === 0 ? 6 : 0 }}>
                 <FlagChip value={b} active={status !== 'INJECTING' && status !== 'RESETTING' && (status === 'DONE' || tick > 0)} />
               </span>
             ))}
           </div>
-          <p className="text-[11px]" style={{ color: 'var(--earth-500)' }}>{nOut} 位输出</p>
+          <p className="text-[11px]" style={{ color: 'var(--earth-500)' }}>{nOut} 位輸出</p>
           {mode === 'program' && (
             <div className="space-y-1">
               <p className="font-mono text-[11px]" style={{ color: 'var(--gold)' }}>
-                {programLabel || '程序'}{programLine ? ` · 第 ${programLine} 行` : ''} · 第 {programRound} 轮
+                {programLabel || '程序'}{programLine ? ` · 第 ${programLine} 行` : ''} · 第 {programRound} 輪
               </p>
               <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 font-mono text-[11px]" style={{ color: 'var(--sand)' }}>
                 {regs.map((v, i) => (
@@ -108,7 +108,7 @@ export default function OutputPanel() {
             </motion.div>
           ) : (
             <div className="font-mono text-[20px]" style={{ color: 'var(--sand)' }}>
-              {status === 'RUNNING' || status === 'PAUSED' ? `演算中 · 第 ${tick} 拍` : '就绪 · 静候鼓令'}
+              {status === 'RUNNING' || status === 'PAUSED' ? `演算中 · 第 ${tick} 拍` : '就緒 · 靜候鼓令'}
             </div>
           )}
 
@@ -118,15 +118,15 @@ export default function OutputPanel() {
                 {mode === 'program'
                   ? `R0 = ${result?.toLocaleString() ?? '?'}`
                   : <>{displayExpr(expr)} = {expect?.toLocaleString() ?? '?'}{' '}
-                    <span style={{ color: match ? 'var(--gold)' : 'var(--flag-red-bright)' }}>{match ? '✓' : '≠ 网表'}</span></>}
+                    <span style={{ color: match ? 'var(--gold)' : 'var(--flag-red-bright)' }}>{match ? '✓' : '≠ 網表'}</span></>}
               </p>
               <p className="text-[11px]" style={{ color: 'var(--earth-300)' }}>
-                DONE 旗已举 · 共 {tick} 拍{elapsed ? ` · 用时 ${elapsed} 秒` : ''}
+                DONE 旗已舉 · 共 {tick} 拍{elapsed ? ` · 用時 ${elapsed} 秒` : ''}
               </p>
             </>
           )}
           {status !== 'DONE' && shown > 0n && (
-            <p className="font-mono text-[12px]" style={{ color: 'var(--earth-500)' }}>当前读数 {shown.toLocaleString()}</p>
+            <p className="font-mono text-[12px]" style={{ color: 'var(--earth-500)' }}>當前讀數 {shown.toLocaleString()}</p>
           )}
         </div>
       )}

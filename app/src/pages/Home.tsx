@@ -49,7 +49,7 @@ function MobileDock() {
   const toasted = useRef(false);
 
   useEffect(() => {
-    if (!toasted.current) { toasted.current = true; toast('横屏体验更佳'); }
+    if (!toasted.current) { toasted.current = true; toast('橫屏體驗更佳'); }
   }, [toast]);
 
   return (
@@ -59,7 +59,7 @@ function MobileDock() {
         <motion.button
           type="button"
           onClick={toggleRun}
-          aria-label="击鼓/暂停"
+          aria-label="擊鼓/暫停"
           className="flex h-11 w-11 items-center justify-center rounded-full border-2 text-paper"
           style={{ background: 'var(--seal)', borderColor: 'var(--bronze)' }}
           key={drumPulse}
@@ -70,7 +70,7 @@ function MobileDock() {
         </motion.button>
         <span className="font-mono text-[14px]" style={{ color: 'var(--gold)' }}>第 {tick}/{maxLayer} 拍</span>
         <div className="flex gap-1 text-[12px]">
-          {([['input', '输入'], ['drum', '鼓令'], ['output', '战果']] as const).map(([k, label]) => (
+          {([['input', '輸入'], ['drum', '鼓令'], ['output', '戰果']] as const).map(([k, label]) => (
             <button
               key={k}
               type="button"

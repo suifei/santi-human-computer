@@ -163,7 +163,7 @@ export default function FullAdderSection() {
                 boxShadow: layer >= 4 ? 'none' : '0 0 24px rgba(255,140,66,0.35)',
               }}
             >
-              击鼓一拍
+              擊鼓一拍
             </button>
             <button
               type="button"
@@ -171,7 +171,7 @@ export default function FullAdderSection() {
               className="rounded-md px-5 py-3 font-hei text-[14px] tracking-[0.08em] transition-colors hover:text-gold"
               style={{ border: '1px solid rgba(176,138,79,0.35)', color: 'var(--sand)' }}
             >
-              复位
+              復位
             </button>
             <span className="font-mono-num text-[13px]" style={{ color: 'var(--earth-300)' }}>
               拍 {layer} / 4
@@ -227,7 +227,7 @@ export default function FullAdderSection() {
                     fill={active ? '#FFFFFF' : 'var(--earth-300)'}
                     fontSize={active ? 18 : 11}
                     fontWeight={700}
-                    fontFamily={active ? "'JetBrains Mono', monospace" : 'Qiji, serif'}
+                    fontFamily={active ? "'JetBrains Mono', monospace" : 'QinYardXingKai, QinYardKai, serif'}
                   >
                     {active ? n.value : n.gate}
                   </text>
@@ -246,7 +246,7 @@ export default function FullAdderSection() {
             })}
           </svg>
           <div className="mt-2 flex items-center justify-between px-2 font-mono-num text-[12px]" style={{ color: 'var(--earth-500)' }}>
-            <span>演示输入：A=1 · B=1 · Cin=0</span>
+            <span>演示輸入：A=1 · B=1 · Cin=0</span>
             <span>
               Sum=<span style={{ color: layer >= 3 ? 'var(--gold)' : 'inherit' }}>{layer >= 3 ? '0' : '?'}</span>
               {'  '}Cout=<span style={{ color: layer >= 4 ? 'var(--gold)' : 'inherit' }}>{layer >= 4 ? '1' : '?'}</span>

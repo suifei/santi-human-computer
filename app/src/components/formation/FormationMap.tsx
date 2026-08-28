@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useInView } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import { ZONES, ZONE_MAP, TOUR_ORDER } from './zones';
 import type { ZoneId, ZoneInfo } from './zones';
+import { UI_FONT } from '@/lib/fonts';
 
 /** 输出手 21 个小方点（世界 x 2..22, z=-17 → svg） */
 const OUT_DOTS = Array.from({ length: 21 }, (_, i) => 330 + i * 10);
@@ -89,7 +90,7 @@ function ZoneShape({
         strokeWidth={3}
         paintOrder="stroke"
         pointerEvents="none"
-        style={{ fontFamily: 'Qiji, serif' }}
+        style={{ fontFamily: UI_FONT }}
       >
         {zone.short}
         {zone.id !== 'DONE' && zone.id !== 'OUT' && zone.id !== 'A' && zone.id !== 'B' && zone.id !== 'C'
@@ -226,7 +227,7 @@ export default function FormationMap() {
           {/* 指北针 */}
           <g aria-hidden>
             <path d="M66,58 L61,72 L66,68 L71,72 Z" fill="var(--gold)" />
-            <text x={66} y={52} textAnchor="middle" fontSize={11} fill="var(--gold)" style={{ fontFamily: 'Qiji, serif' }}>北</text>
+            <text x={66} y={52} textAnchor="middle" fontSize={11} fill="var(--gold)" style={{ fontFamily: UI_FONT }}>北</text>
           </g>
 
           {/* 信号流向：自南向北 3 条金色虚线箭头 */}
@@ -251,13 +252,13 @@ export default function FormationMap() {
           <g aria-label="鼓台">
             <rect x={534} y={352} width={60} height={60} rx={4} fill="var(--earth-900)" stroke="rgba(176,138,79,0.6)" />
             <circle cx={564} cy={378} r={12} fill="var(--seal)" stroke="var(--bronze)" strokeWidth={2} />
-            <text x={564} y={430} textAnchor="middle" fontSize={11} fill="var(--sand)" style={{ fontFamily: 'Qiji, serif' }}>鼓台</text>
+            <text x={564} y={430} textAnchor="middle" fontSize={11} fill="var(--sand)" style={{ fontFamily: UI_FONT }}>鼓台</text>
           </g>
           <g aria-label="监军台">
             <rect x={546} y={34} width={48} height={48} rx={4} fill="var(--earth-900)" stroke="rgba(176,138,79,0.6)" />
             <path d="M552,48 L570,40 L588,48" fill="none" stroke="var(--bronze)" strokeWidth={2} />
             <rect x={558} y={52} width={24} height={18} fill="none" stroke="var(--bronze)" strokeWidth={1.4} />
-            <text x={570} y={98} textAnchor="middle" fontSize={11} fill="var(--sand)" style={{ fontFamily: 'Qiji, serif' }}>監軍台</text>
+            <text x={570} y={98} textAnchor="middle" fontSize={11} fill="var(--sand)" style={{ fontFamily: UI_FONT }}>監軍台</text>
           </g>
 
           {/* 可交互分区（输出/DONE 后置以压在上层） */}
@@ -273,10 +274,10 @@ export default function FormationMap() {
           ))}
 
           {/* 方位标注 */}
-          <text x={320} y={470} textAnchor="middle" fontSize={11} fill="var(--earth-300)" style={{ fontFamily: 'Qiji, serif' }}>
+          <text x={320} y={470} textAnchor="middle" fontSize={11} fill="var(--earth-300)" style={{ fontFamily: UI_FONT }}>
             南 · 注入缘
           </text>
-          <text x={320} y={24} textAnchor="middle" fontSize={11} fill="var(--earth-300)" style={{ fontFamily: 'Qiji, serif' }}>
+          <text x={320} y={24} textAnchor="middle" fontSize={11} fill="var(--earth-300)" style={{ fontFamily: UI_FONT }}>
             北 · 报捷缘
           </text>
         </svg>

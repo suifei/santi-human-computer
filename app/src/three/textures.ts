@@ -1,6 +1,7 @@
 /** 程序化 Canvas 纹理：旗帜（红壹/蓝零）、门牌号图集、区域木牌 */
 import * as THREE from 'three';
 import type { Gate } from '@/sim/netlist';
+import { BRUSH_FONT } from '@/lib/fonts';
 
 /** 旗帜贴图 512×352（home.md §6.2）：朱红壹 / 钢蓝零，暗金回纹边框 */
 export function makeFlagTexture(isRed: boolean): THREE.CanvasTexture {
@@ -33,7 +34,7 @@ export function makeFlagTexture(isRed: boolean): THREE.CanvasTexture {
 
   // 中央白色篆意大字
   g.fillStyle = '#F6EFDD';
-  g.font = '190px ShuowenSeal, Qiji, serif';
+  g.font = `190px ${BRUSH_FONT}`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   g.fillText(isRed ? '壹' : '零', w / 2, h / 2 + 8);
@@ -87,7 +88,7 @@ export function makeSignTexture(text: string): THREE.CanvasTexture {
   g.lineWidth = 8;
   g.strokeRect(10, 10, w - 20, h - 20);
   g.fillStyle = '#D4A952';
-  g.font = '118px ShuowenSeal, Qiji, serif';
+  g.font = `118px ${BRUSH_FONT}`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   const chars = [...text];

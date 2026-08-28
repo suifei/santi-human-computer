@@ -1,0 +1,110 @@
+{
+  "note": "2D proto plates for user-authored GLB. Do not use these JPEGs as runtime textures. Keep qin-proto.glb / qin-soldier.glb as the soldier source.",
+  "axis": {
+    "height_m": "Y up, feet at y=0",
+    "forward": "web +Z (Blender -Y, glTF export_yup=True)",
+    "soldier_height_m": 1.76
+  },
+  "assets": [
+    {
+      "id": "flag-red",
+      "files": ["flag-red-proto-front.jpg", "flag-red-proto-side.jpg", "flag-red-proto-back.jpg"],
+      "model": "separate mesh from the soldier; instanced beside each gate",
+      "dims_m": { "pole_h": 2.62, "pole_d": 0.032, "cloth_w": 0.55, "cloth_h": 0.38, "offset_x": 0.42 },
+      "notes": "Canonical shape is FRONT: square/rect cloth on a short crossarm, bronze spear finial. Side plates are silhouette only. Cloth texture: vermillion #C23B2E, gold meander border, cream seal 壹. Same mesh as blue, swap albedo."
+    },
+    {
+      "id": "flag-blue",
+      "files": ["flag-blue-proto-front.jpg", "flag-blue-proto-side.jpg", "flag-blue-proto-back.jpg"],
+      "dims_m": { "pole_h": 2.62, "pole_d": 0.032, "cloth_w": 0.55, "cloth_h": 0.38 },
+      "notes": "Same geometry as flag-red. Cloth #3E5F75, cream seal 零."
+    },
+    {
+      "id": "drum",
+      "files": ["drum-proto-front.jpg", "drum-proto-side.jpg", "drum-proto-top.jpg"],
+      "dims_m": { "diameter": 1.6, "depth": 0.7, "stand_h": 0.35 },
+      "notes": "Horizontal barrel, vermillion shell, bronze tacks, cowhide heads. Sits on the drum tower deck. No people."
+    },
+    {
+      "id": "mallet",
+      "files": ["mallet-proto-front.jpg", "mallet-proto-side.jpg", "mallet-proto-end.jpg"],
+      "dims_m": { "length": 0.5, "head_d": 0.06 },
+      "notes": "Two sticks for the drummer. Drummer mesh reuses the Qin soldier, do not sculpt a new person."
+    },
+    {
+      "id": "tower-drum",
+      "files": ["tower-drum-proto-front.jpg", "tower-drum-proto-side.jpg", "tower-drum-proto-top.jpg"],
+      "dims_m": { "deck": 6, "height": 3, "stairs": 3 },
+      "notes": "Rammed-earth podium + south stairs + four lantern posts. Empty of people and of the drum (drum is a separate asset). Scene position [25,0,16]."
+    },
+    {
+      "id": "tower-cmd",
+      "files": ["tower-cmd-proto-front.jpg", "tower-cmd-proto-side.jpg", "tower-cmd-proto-top.jpg"],
+      "dims_m": { "deck": 6, "height": 4, "canopy_h": 1.6 },
+      "notes": "Rammed-earth observation deck, four posts, simple pyramidal wooden canopy, low desk. Qin Shi Huang and von Neumann stand here as separate hero meshes. Scene position [25,0,-17]."
+    },
+    {
+      "id": "tent",
+      "files": ["tent-proto-front.jpg", "tent-proto-side.jpg", "tent-proto-back.jpg"],
+      "dims_m": { "width": 4.4, "length": 6, "ridge_h": 2.8 },
+      "notes": "Rectangular ridge tent, hemp canvas, guy ropes. Not a yurt or teepee. Distant silhouettes, 4–5 copies."
+    },
+    {
+      "id": "torch",
+      "files": ["torch-proto-front.jpg", "torch-proto-side.jpg", "torch-proto-top.jpg"],
+      "dims_m": { "height": 2.2, "bowl_d": 0.2 },
+      "notes": "Daytime unlit: wood shaft + bronze basin, no flame. 12 copies around the yard."
+    },
+    {
+      "id": "sign",
+      "files": ["sign-proto-front.jpg", "sign-proto-side.jpg", "sign-proto-back.jpg"],
+      "dims_m": { "post_h": 1.6, "board_w": 0.8, "board_h": 1.6 },
+      "notes": "Model a blank dark wood plaque + post. Vertical gold text is painted at runtime (輸入區 / 加法陣 / …). Do not bake one label into the mesh."
+    },
+    {
+      "id": "emperor",
+      "files": ["emperor-proto-front.jpg", "emperor-proto-side.jpg", "emperor-proto-back.jpg"],
+      "dims_m": { "height": 1.80 },
+      "notes": "秦始皇，监军台上的英雄静模，不实例化。玄衣纁里、通天冠、双手持圭。正面图有龙纹可简化；侧面黑袍更接近秦制。面朝 +Z，脚底贴地。"
+    },
+    {
+      "id": "vonneumann",
+      "files": ["vonneumann-proto-front.jpg", "vonneumann-proto-side.jpg", "vonneumann-proto-back.jpg"],
+      "dims_m": { "height": 1.78 },
+      "notes": "冯·诺依曼，1940 年代西装，与始皇同台进言（小说 VR 局）。单独静模，不穿秦服。面朝 +Z。运行时加载 vonneumann-proto.glb（无 UV/贴图，灰陶着色）。"
+    },
+    {
+      "id": "ground",
+      "files": ["ground-proto-tile.jpg", "ground-proto-close.jpg", "ground-proto-yard.jpg"],
+      "notes": "夯土地面。运行时用 tile 作 repeat albedo；close 看材质；yard 看操场尺度。"
+    },
+    {
+      "id": "sky",
+      "files": ["sky-proto-horizon.jpg", "sky-proto-zenith.jpg", "sky-proto-panorama.jpg"],
+      "notes": "白昼天穹。运行时用 panorama 做天空球（地平线在图底）；horizon / zenith 供对照。"
+    },
+    {
+      "id": "tree",
+      "files": ["tree-proto-front.jpg", "tree-proto-side.jpg", "tree-proto-top.jpg"],
+      "dims_m": { "height": 6 },
+      "notes": "关中侧柏。运行时抠透明后做圆柱公告板，场边自动散布，不种进方阵。"
+    },
+    {
+      "id": "grass",
+      "files": ["grass-proto-front.jpg", "grass-proto-side.jpg", "grass-proto-top.jpg"],
+      "dims_m": { "height": 0.4 },
+      "notes": "枯草丛。运行时抠透明后做圆柱公告板，只散布在操场边缘，不要铺成草坪。"
+    },
+    {
+      "id": "bird",
+      "files": ["bird-proto-side.jpg", "bird-proto-front.jpg", "bird-proto-top.jpg"],
+      "dims_m": { "wingspan": 0.22 },
+      "notes": "麻雀展翅静模，少量实例飞过。翅膀姿态烘进网格即可，不必骨骼。"
+    },
+    {
+      "id": "cloud",
+      "files": ["cloud-proto-front.jpg", "cloud-proto-side.jpg", "cloud-proto-top.jpg"],
+      "notes": "单朵积云体积块，做广告牌或低模体积，挂在天穹里。不要整片天空球。"
+    }
+  ]
+}

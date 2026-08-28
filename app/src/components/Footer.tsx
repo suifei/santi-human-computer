@@ -15,21 +15,21 @@ export default function Footer() {
           <div>
             <div className="font-brush text-paper tracking-[0.08em]">人列計算機</div>
             <div className="mt-1 text-[12px] leading-relaxed" style={{ color: 'var(--earth-500)' }}>
-              红 = 1 · 蓝 = 0 · 鼓响为令
+              紅 = 1 · 藍 = 0 · 鼓響為令
             </div>
           </div>
         </div>
         <nav className="flex flex-col gap-2 text-[14px]" aria-label="页脚导航">
-          <Link className="hover:text-gold transition-colors" style={{ color: 'var(--sand)' }} to="/">演算场</Link>
+          <Link className="hover:text-gold transition-colors" style={{ color: 'var(--sand)' }} to="/">演算場</Link>
           <Link className="hover:text-gold transition-colors" style={{ color: 'var(--sand)' }} to="/principle">原理</Link>
-          <Link className="hover:text-gold transition-colors" style={{ color: 'var(--sand)' }} to="/formation">阵图</Link>
+          <Link className="hover:text-gold transition-colors" style={{ color: 'var(--sand)' }} to="/formation">陣圖</Link>
         </nav>
         <p className="text-[13px] leading-relaxed md:text-right" style={{ color: 'var(--earth-500)' }}>
-          灵感源自刘慈欣《三体》· 本站为粉丝向技术演示
+          靈感源自劉慈欣《三體》· 本站為粉絲向技術演示
         </p>
       </div>
       <div className="pb-6 text-center text-[12px]" style={{ color: 'var(--earth-500)' }}>
-        红 = 1 · 蓝 = 0 · 鼓响为令
+        紅 = 1 · 藍 = 0 · 鼓響為令
       </div>
     </footer>
   );

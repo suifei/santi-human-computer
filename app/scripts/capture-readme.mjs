@@ -28,12 +28,12 @@ await page.evaluate(() => {
   if (!s.muted) s.toggleMute()
 })
 await page.getByRole('button', { name: '擊鼓入陣' }).click({ timeout: 20000, force: true })
-await page.getByText('演算场', { exact: true }).waitFor({ timeout: 15000 })
+await page.getByText('演算場', { exact: true }).waitFor({ timeout: 15000 })
 await page.locator('canvas').waitFor()
 await page.evaluate(async () => {
   await document.fonts.ready
   try { await document.fonts.load('400 64px ShuowenSeal') } catch {}
-  try { await document.fonts.load('400 32px Qiji') } catch {}
+  try { await document.fonts.load('400 32px QinYardXingKai') } catch {}
 })
 await page.waitForTimeout(4200)
 

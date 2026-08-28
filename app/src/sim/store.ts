@@ -42,7 +42,7 @@ function selfCheck(nl: Netlist) {
 }
 
 export type Status = 'LOADING' | 'IDLE' | 'INJECTING' | 'READY' | 'RUNNING' | 'PAUSED' | 'DONE' | 'RESETTING';
-export type Preset = 'overview' | 'top' | 'input' | 'drum' | 'output' | 'follow';
+export type Preset = 'overview' | 'top' | 'input' | 'drum' | 'output' | 'command' | 'follow';
 export type Speed = 0.5 | 1 | 2 | 4 | 8;
 export type SimMode = 'expr' | 'program';
 
@@ -170,7 +170,7 @@ export const useSim = create<SimStore>((set, get) => {
           programLabel: '完成', programOp: null, programUntil: 0,
         });
         drumRoll();
-        s.toast(`程序完成：R0 = ${out.toLocaleString()} · ${programVm.rounds} 轮人列`);
+        s.toast(`程序完成：R0 = ${out.toLocaleString()} · ${programVm.rounds} 輪人列`);
         return;
       }
       drumHit(1, 0.45);
@@ -197,7 +197,7 @@ export const useSim = create<SimStore>((set, get) => {
   const rebuild = (expr: string, bits: BitWidth): boolean => {
     const s = get();
     if (s.status === 'RUNNING' || s.status === 'INJECTING' || s.status === 'RESETTING') {
-      s.toast('演算中不能换军令');
+      s.toast('演算中不能換軍令');
       return false;
     }
     const r = tryBuildNetlist(expr, bits);
@@ -212,7 +212,7 @@ export const useSim = create<SimStore>((set, get) => {
       startedAt: null, finishedAt: null, flipFast: false,
     });
     if (import.meta.env.DEV) selfCheck(r.netlist);
-    s.toast(`${bits} 位 · ${displayExpr(r.netlist.expr)} · ${r.netlist.gates.length} 门 / ${r.netlist.maxLayer} 拍`);
+    s.toast(`${bits} 位 · ${displayExpr(r.netlist.expr)} · ${r.netlist.gates.length} 門 / ${r.netlist.maxLayer} 拍`);
     return true;
   };
 
@@ -316,7 +316,7 @@ export const useSim = create<SimStore>((set, get) => {
     }
     setTimeout(() => {
       set({ status: 'READY' });
-      get().toast('全员已列阵，请击鼓演算');
+      get().toast('全員已列陣，請擊鼓演算');
     }, nA * step + 50);
   }
 
@@ -375,7 +375,7 @@ export const useSim = create<SimStore>((set, get) => {
       if (get().mode === 'program') {
         const s = get();
         if (s.status === 'RUNNING' || s.status === 'INJECTING' || s.status === 'RESETTING') {
-          s.toast('演算中不能换位宽');
+          s.toast('演算中不能換位寬');
           return false;
         }
         const nl = buildCpuNetlist(bits);
@@ -387,8 +387,8 @@ export const useSim = create<SimStore>((set, get) => {
           programOp: null, programUntil: 0,
           changed: [], commitNonce: s.commitNonce + 1, resetNonce: s.resetNonce + 1,
         });
-        if (bits === 32) s.toast('32 位全员含乘除约两万门；加法仍按加法拍数，循环请用 10 位');
-        else s.toast(`${bits} 位数据通路 · ${nl.gates.length} 门全员列阵`);
+        if (bits === 32) s.toast('32 位全員含乘除約兩萬門；加法仍按加法拍數，循環請用 10 位');
+        else s.toast(`${bits} 位資料通路 · ${nl.gates.length} 門全員列陣`);
         return true;
       }
       return rebuild(get().expr, bits);
@@ -396,7 +396,7 @@ export const useSim = create<SimStore>((set, get) => {
     setMode: (mode) => {
       const s = get();
       if (s.status === 'RUNNING' || s.status === 'INJECTING' || s.status === 'RESETTING') {
-        s.toast('演算中不能切换');
+        s.toast('演算中不能切換');
         return;
       }
       if (s.mode === mode) return;
@@ -418,7 +418,7 @@ export const useSim = create<SimStore>((set, get) => {
         tick: 0, selectedId: null,
         changed: [], commitNonce: s.commitNonce + 1, resetNonce: s.resetNonce + 1,
       });
-      s.toast(`程序模式：全员列阵 ${nl.gates.length} 门，加减乘除比较都在`);
+      s.toast(`程序模式：全員列陣 ${nl.gates.length} 門，加減乘除比較都在`);
     },
     setProgramText: (src) => set({ programText: src }),
 
@@ -431,7 +431,7 @@ export const useSim = create<SimStore>((set, get) => {
         programVm = createVm(parsed.stmts, s.bits, s.inputs);
         const camp = nextCampaign(programVm);
         if ('error' in camp) { s.toast(camp.error); programVm = null; return; }
-        if ('halt' in camp) { s.toast('程序没有可执行的人列战役'); programVm = null; return; }
+        if ('halt' in camp) { s.toast('程序沒有可執行的人列戰役'); programVm = null; return; }
         set({ status: 'RESETTING', regs: programVm.regs.slice(), result: null, startedAt: null, finishedAt: null });
         resetTriple();
         resetCore(true);
@@ -478,7 +478,7 @@ export const useSim = create<SimStore>((set, get) => {
         }
         setTimeout(() => {
           set({ status: 'READY' });
-          get().toast('注入完成，请击鼓演算');
+          get().toast('注入完成，請擊鼓演算');
         }, nA * step + 50);
       }, 500);
     },
@@ -492,7 +492,7 @@ export const useSim = create<SimStore>((set, get) => {
         clearTimer();
         set({ status: 'PAUSED' });
       } else if (s.status === 'IDLE') {
-        s.toast('请先注入方阵');
+        s.toast('請先注入方陣');
       }
     },
 
@@ -506,7 +506,7 @@ export const useSim = create<SimStore>((set, get) => {
         set({ tick: t, changed, commitNonce: get().commitNonce + 1, drumPulse: get().drumPulse + 1 });
         if (t >= campaignUntil()) finish();
       } else if (s.status === 'IDLE') {
-        s.toast('请先注入方阵');
+        s.toast('請先注入方陣');
       }
     },
 
@@ -520,14 +520,14 @@ export const useSim = create<SimStore>((set, get) => {
       resetCore(true);
       setTimeout(() => {
         set({ status: 'IDLE' });
-        get().toast('复位完毕 —— 大军列阵，静候将令');
+        get().toast('復位完畢 —— 大軍列陣，靜候將令');
       }, 900);
     },
 
     fastForward: () => {
       const s = get();
       if (s.status !== 'READY' && s.status !== 'RUNNING' && s.status !== 'PAUSED') {
-        if (s.status === 'IDLE') s.toast('请先注入方阵');
+        if (s.status === 'IDLE') s.toast('請先注入方陣');
         return;
       }
       clearTimer();

@@ -29,7 +29,7 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { gen: number; c
     if (this.state.giveUp) {
       return (
         <div className="fixed inset-0 grid place-items-center font-song text-[15px]" style={{ background: 'var(--ink)', color: 'var(--sand)' }}>
-          演算场画布中断，请刷新页面
+          演算場畫布中斷，請重新整理頁面
         </div>
       );
     }
@@ -49,7 +49,7 @@ export default function Scene() {
   return (
     <CanvasBoundary>
       <Canvas
-        aria-label="人列计算机 3D 演算场"
+        aria-label="人列計算機 3D 演算場"
         dpr={[1, 2]}
         shadows={{ type: THREE.PCFShadowMap }}
         camera={{ fov: 45, near: 0.1, far: 4000, position: [85, 62, 95] }}

@@ -51,7 +51,7 @@ function PageHeader() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          方阵总图与编制
+          方陣總圖與編制
         </motion.h1>
         <motion.p
           className="mt-4 text-[15px] tracking-[0.02em] text-sand"
@@ -59,7 +59,7 @@ function PageHeader() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          九百三十二名士兵的番号、站位与军令。
+          九百三十二名士兵的番號、站位與軍令。
         </motion.p>
       </div>
     </section>
@@ -82,7 +82,7 @@ function CtaBanner() {
         aria-hidden
       />
       <p className="relative font-brush text-paper" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', letterSpacing: '0.04em' }}>
-        看图千遍，不如击鼓一回。
+        看圖千遍，不如擊鼓一回。
       </p>
       <motion.div className="relative mt-8 inline-block" whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} transition={{ duration: 0.2 }}>
         <Link
@@ -110,7 +110,7 @@ export default function Formation() {
 
       {/* S2 阵型总图 */}
       <section className="mx-auto max-w-6xl px-6 pt-16">
-        <SectionTitle seal="圖" title="阵型俯瞰总图" />
+        <SectionTitle seal="圖" title="陣型俯瞰總圖" />
         <p className="mt-4 max-w-2xl text-[14px] leading-relaxed text-sand">
           顶视图按演算场 3D 坐标等比绘制：北在上，信号自南向北逐级推进。
           悬停任一色块查看该分区编制，点击可锁定详情。
@@ -123,7 +123,7 @@ export default function Formation() {
 
       {/* S3 编制表（花名册） */}
       <section className="mx-auto max-w-6xl px-6 pt-24">
-        <SectionTitle seal="籍" title="编制花名册" />
+        <SectionTitle seal="籍" title="編制花名冊" />
         <div className="mt-8">
           <RosterTable />
         </div>
@@ -131,7 +131,7 @@ export default function Formation() {
 
       {/* S4 指令卡规范 */}
       <section className="mx-auto max-w-6xl px-6 pt-24">
-        <SectionTitle seal="令" title="指令卡规范" />
+        <SectionTitle seal="令" title="指令卡規範" />
         <div className="mt-8">
           <InstructionCardAnatomy />
         </div>
@@ -139,7 +139,7 @@ export default function Formation() {
 
       {/* S5 拍节时间线 */}
       <section className="mx-auto max-w-4xl px-6 pt-24">
-        <SectionTitle seal="拍" title="从注入到报捷" />
+        <SectionTitle seal="拍" title="從注入到報捷" />
         <div className="mt-10">
           <BeatTimeline />
         </div>

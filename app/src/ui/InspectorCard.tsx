@@ -66,7 +66,7 @@ export default function InspectorCard() {
             </div>
             <button
               type="button"
-              aria-label="关闭指令卡"
+              aria-label="關閉指令卡"
               onClick={() => select(null)}
               className="absolute left-3 top-3 opacity-50 transition-opacity hover:opacity-100"
               style={{ color: 'var(--ink)' }}

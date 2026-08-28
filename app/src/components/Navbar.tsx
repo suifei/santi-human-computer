@@ -3,9 +3,10 @@ import { motion } from 'framer-motion';
 import { asset } from '@/lib/utils';
 
 const NAV = [
-  { to: '/', label: '演算场' },
+  { to: '/', label: '演算場' },
+  { to: '/asset', label: '點驗' },
   { to: '/principle', label: '原理' },
-  { to: '/formation', label: '阵图' },
+  { to: '/formation', label: '陣圖' },
 ];
 
 /** TopNav（design.md §9.1）：64px，fixed top-0，内容页专用（主页用自有悬浮顶栏） */

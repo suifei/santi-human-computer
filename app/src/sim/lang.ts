@@ -22,16 +22,16 @@ export type LangResult = LangOk | LangErr;
 export const DEFAULT_PROGRAM = 'R0 = (A+B)*C\n';
 
 export const PRESET_PROGRAMS: { label: string; src: string; hint?: string }[] = [
-  { label: '经典乘加', src: 'R0 = (A+B)*C\n' },
+  { label: '經典乘加', src: 'R0 = (A+B)*C\n' },
   {
     label: '累加乘法',
     src: 'R0 = 0\nR1 = B\nwhile R1 {\n  R0 = R0 + A\n  R1 = R1 - 1\n}\n',
-    hint: '全员列阵；每一轮只翻加法旗。乙 B 请用较小的数（如 5）',
+    hint: '全員列陣；每一輪只翻加法旗。乙 B 請用較小的數（如 5）',
   },
   {
-    label: '倒计数',
+    label: '倒計數',
     src: 'R0 = A\nwhile R0 {\n  R0 = R0 - 1\n}\n',
-    hint: '甲 A 即倒数次数；减法阵翻旗，人海仍全在',
+    hint: '甲 A 即倒數次數；減法陣翻旗，人海仍全在',
   },
 ];
 
@@ -77,7 +77,7 @@ export function parseLang(raw: string): LangResult {
     const start = i;
     while (peek() && peek() !== '{') i++;
     const rawCond = src.slice(start, i).trim();
-    if (!rawCond) return fail('缺少条件');
+    if (!rawCond) return fail('缺少條件');
     for (const op of CMPS) {
       const at = rawCond.indexOf(op);
       if (at < 0) continue;
@@ -133,10 +133,10 @@ export function parseLang(raw: string): LangResult {
     while (peek() && peek() !== '\n' && peek() !== '}') i++;
     const lineText = src.slice(start, i).trim();
     const eq = lineText.indexOf('=');
-    if (eq < 0) return fail('请写赋值（R0 = …）或 if / while');
+    if (eq < 0) return fail('請寫賦值（R0 = …）或 if / while');
     const lhs = parseOperand(lineText.slice(0, eq));
     if (lhs.ok === false) return fail(lhs.error);
-    if (lhs.op.k !== 'reg') return fail('只能赋值给 R0–R7');
+    if (lhs.op.k !== 'reg') return fail('只能賦值給 R0–R7');
     const rhs = parseValueExpr(lineText.slice(eq + 1));
     if (rhs.ok === false) return fail(rhs.error);
     return { k: 'assign', dest: lhs.op.i, rhs: rhs.ast, line };
@@ -144,13 +144,13 @@ export function parseLang(raw: string): LangResult {
 
   try {
     skipWs();
-    if (!peek()) return { ok: false, error: '程序不能为空', line: 1 };
+    if (!peek()) return { ok: false, error: '程序不能為空', line: 1 };
     const stmts = parseBlock(0);
     skipWs();
-    if (peek()) fail('源码末尾有多余字符');
+    if (peek()) fail('源碼末尾有多餘字元');
     return { ok: true, stmts };
   } catch (e) {
     const line = e && typeof e === 'object' && 'line' in e ? Number((e as { line: number }).line) : 1;
-    return { ok: false, error: e instanceof Error ? e.message : '程序无法解析', line };
+    return { ok: false, error: e instanceof Error ? e.message : '程序無法解析', line };
   }
 }

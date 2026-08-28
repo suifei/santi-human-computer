@@ -165,7 +165,7 @@ function microForTest(cond: Cond, line: number): Micro {
 function instantiate(vm: Vm, m: Micro): Campaign | { error: string } {
   const aluA = readOp(vm, m.left);
   const aluB = readOp(vm, m.right);
-  if (m.op === 'div' && aluB === 0n) return { error: '除数为 0，无法注入' };
+  if (m.op === 'div' && aluB === 0n) return { error: '除數為 0，無法注入' };
   if (m.left.k === 'const' && m.left.v > inputMaxBig(vm.bits)) {
     return { error: `立即数 ${m.left.v} 超过 ${vm.bits} 位上限` };
   }

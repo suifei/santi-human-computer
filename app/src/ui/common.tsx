@@ -44,14 +44,14 @@ export function DrumButton({
 }
 
 const STATUS_META: Record<Status, { label: string; color: string; bg: string; pulse?: boolean }> = {
-  LOADING: { label: '加载中', color: 'var(--earth-300)', bg: 'rgba(74,55,38,0.4)' },
-  IDLE: { label: '待机', color: 'var(--sand)', bg: 'rgba(74,55,38,0.5)' },
+  LOADING: { label: '載入中', color: 'var(--earth-300)', bg: 'rgba(74,55,38,0.4)' },
+  IDLE: { label: '待機', color: 'var(--sand)', bg: 'rgba(74,55,38,0.5)' },
   INJECTING: { label: '注入中', color: 'var(--gold)', bg: 'rgba(212,169,82,0.15)' },
-  READY: { label: '就绪', color: 'var(--gold)', bg: 'rgba(212,169,82,0.18)' },
+  READY: { label: '就緒', color: 'var(--gold)', bg: 'rgba(212,169,82,0.18)' },
   RUNNING: { label: '演算中', color: 'var(--ember)', bg: 'rgba(255,140,66,0.14)', pulse: true },
-  PAUSED: { label: '暂停', color: 'var(--ember)', bg: 'rgba(255,140,66,0.10)' },
+  PAUSED: { label: '暫停', color: 'var(--ember)', bg: 'rgba(255,140,66,0.10)' },
   DONE: { label: '完成', color: 'var(--gold)', bg: 'rgba(163,46,34,0.5)' },
-  RESETTING: { label: '复位中', color: 'var(--sand)', bg: 'rgba(74,55,38,0.5)', pulse: true },
+  RESETTING: { label: '復位中', color: 'var(--sand)', bg: 'rgba(74,55,38,0.5)', pulse: true },
 };
 
 export function StatusBadge({ status }: { status: Status }) {

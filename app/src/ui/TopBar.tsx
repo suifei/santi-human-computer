@@ -33,12 +33,13 @@ export default function TopBar() {
         </div>
       </div>
       <nav className="flex items-center gap-5 text-[13px]">
-        <span className="font-medium" style={{ color: 'var(--gold)' }}>演算场</span>
+        <span className="font-medium" style={{ color: 'var(--gold)' }}>演算場</span>
+        <Link to="/asset" className="transition-colors hover:text-gold" style={{ color: 'var(--sand)' }}>點驗</Link>
         <Link to="/principle" className="transition-colors hover:text-gold" style={{ color: 'var(--sand)' }}>原理</Link>
-        <Link to="/formation" className="transition-colors hover:text-gold" style={{ color: 'var(--sand)' }}>阵图</Link>
+        <Link to="/formation" className="transition-colors hover:text-gold" style={{ color: 'var(--sand)' }}>陣圖</Link>
         <button
           type="button"
-          aria-label={muted ? '开启音效' : '关闭音效'}
+          aria-label={muted ? '開啟音效' : '關閉音效'}
           onClick={toggleMute}
           className="transition-colors hover:text-gold"
           style={{ color: 'var(--bronze)' }}
@@ -47,7 +48,7 @@ export default function TopBar() {
         </button>
         <button
           type="button"
-          aria-label="帮助"
+          aria-label="說明"
           onClick={() => setHelp((v) => !v)}
           className="transition-colors hover:text-gold"
           style={{ color: 'var(--bronze)' }}
@@ -68,11 +69,11 @@ export default function TopBar() {
           >
             <div className="panel-title mb-2">操作說明</div>
             <ul className="space-y-1">
-              <li>· 左键拖拽旋转 / 右键平移 / 滚轮缩放</li>
-              <li>· 点击士兵查看指令卡，Esc 关闭</li>
-              <li>· 快捷键 <span className="font-mono text-gold">1–5</span> 切换机位，<span className="font-mono text-gold">F</span> 跟随信号</li>
-              <li>· <span className="font-mono text-gold">空格</span> = 击鼓 / 暂停</li>
-              <li>· 每位士兵是一个逻辑门：红旗=1，蓝旗=0</li>
+              <li>· 左鍵拖曳旋轉 / 右鍵平移 / 滾輪縮放</li>
+              <li>· 點擊士兵查看指令卡，Esc 關閉</li>
+              <li>· 快捷鍵 <span className="font-mono text-gold">1–6</span> 切換機位，<span className="font-mono text-gold">F</span> 跟隨信號</li>
+              <li>· <span className="font-mono text-gold">空格</span> = 擊鼓 / 暫停</li>
+              <li>· 每位士兵是一個邏輯門：紅旗=1，藍旗=0</li>
             </ul>
           </motion.div>
         )}

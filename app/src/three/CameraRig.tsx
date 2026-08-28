@@ -1,4 +1,4 @@
-/** 相机与运镜：OrbitControls + 入场运镜 + 预设机位（1–5/F 快捷键）+ 跟随信号 + 鼓点微震 */
+/** 相机与运镜：OrbitControls + 入场运镜 + 预设机位（1–6/F 快捷键）+ 跟随信号 + 鼓点微震 */
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -22,6 +22,7 @@ function presetsFromBounds(b: FieldBounds) {
     input: { pos: [cx, 2.8, b.maxZ + 8] as [number, number, number], tgt: [cx, 1.15, b.maxZ - 1] as [number, number, number] },
     drum: { pos: [cx + span * 0.25, 4.5, cz + span * 0.15] as [number, number, number], tgt: [cx, 1.2, cz] as [number, number, number] },
     output: { pos: [b.maxX + 4, 5, b.minZ - 6] as [number, number, number], tgt: [cx, 1.2, b.minZ + 4] as [number, number, number] },
+    command: { pos: [19.2, 5.55, -14.2] as [number, number, number], tgt: [24.4, 4.85, -17] as [number, number, number] },
   };
 }
 
@@ -123,12 +124,12 @@ export default function CameraRig() {
     camera.position.add(prevOff.current);
   });
 
-  /* 快捷键 1–5 / F / 空格 / Esc */
+  /* 快捷键 1–6 / F / 空格 / Esc */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
       const st = useSim.getState();
-      const map: Record<string, Preset> = { '1': 'overview', '2': 'top', '3': 'input', '4': 'drum', '5': 'output' };
+      const map: Record<string, Preset> = { '1': 'overview', '2': 'top', '3': 'input', '4': 'drum', '5': 'output', '6': 'command' };
       if (map[e.key]) st.setPreset(map[e.key]);
       else if (e.key === 'f' || e.key === 'F') st.setPreset(st.preset === 'follow' ? 'overview' : 'follow');
       else if (e.key === ' ') { e.preventDefault(); st.toggleRun(); }
@@ -137,6 +138,32 @@ export default function CameraRig() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  useEffect(() => {
+    const w = window as Window & {
+      __santiLook?: (opts: {
+        x: number; y: number; z: number;
+        tx: number; ty: number; tz: number;
+      }) => void;
+    };
+    w.__santiLook = ({ x, y, z, tx, ty, tz }) => {
+      const c = controlsRef.current;
+      gsap.killTweensOf(camera.position);
+      gsap.killTweensOf(c.target);
+      c.enabled = false;
+      c.enableDamping = false;
+      c.minDistance = 0.2;
+      c.maxDistance = 80;
+      c.maxPolarAngle = Math.PI;
+      camera.position.set(x, y, z);
+      c.target.set(tx, ty, tz);
+      c.update();
+      (w as Window & { __santiCamPos?: { x: number; y: number; z: number } }).__santiCamPos = {
+        x: camera.position.x, y: camera.position.y, z: camera.position.z,
+      };
+    };
+    return () => { delete w.__santiLook; };
+  }, [camera]);
 
   return (
     <OrbitControls

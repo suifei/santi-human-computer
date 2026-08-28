@@ -35,7 +35,7 @@ export default function DrumConsole() {
         type="button"
         onClick={toggleRun}
         disabled={!canRun}
-        aria-label={running ? '暂停演算' : '击鼓演算'}
+        aria-label={running ? '暫停演算' : '擊鼓演算'}
         className="flex h-14 w-14 items-center justify-center rounded-full border-2 text-paper disabled:opacity-40"
         style={{ background: 'var(--seal)', borderColor: 'var(--bronze)' }}
         animate={{ scale: 1 }}
@@ -50,8 +50,8 @@ export default function DrumConsole() {
 
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5">
-          <ConsoleBtn onClick={stepOnce} disabled={!canRun || running} icon={<ChevronRight size={14} />} label="单拍" />
-          <ConsoleBtn onClick={resetAll} disabled={status === 'LOADING' || status === 'RESETTING'} icon={<RotateCcw size={14} />} label="复位" />
+          <ConsoleBtn onClick={stepOnce} disabled={!canRun || running} icon={<ChevronRight size={14} />} label="單拍" />
+          <ConsoleBtn onClick={resetAll} disabled={status === 'LOADING' || status === 'RESETTING'} icon={<RotateCcw size={14} />} label="復位" />
           <ConsoleBtn onClick={fastForward} disabled={!canRun} icon={<FastForward size={14} />} label="瞬算" />
         </div>
         {/* 速度五档 */}
@@ -80,8 +80,8 @@ export default function DrumConsole() {
           第 {tick} / {beats} 拍
         </div>
         <div className="text-[11px]" style={{ color: 'var(--earth-300)' }}>
-          {gateN} 门{mode === 'program' && programLabel ? ` · ${programLabel}` : ''}
-          {mode === 'program' ? ` · 第 ${programRound} 轮` : ''}
+          {gateN} 門{mode === 'program' && programLabel ? ` · ${programLabel}` : ''}
+          {mode === 'program' ? ` · 第 ${programRound} 輪` : ''}
         </div>
         <div className="mt-1.5 h-[3px] w-full rounded-sm" style={{ background: 'var(--earth-700)' }}>
           <div

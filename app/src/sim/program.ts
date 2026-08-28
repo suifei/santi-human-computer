@@ -73,7 +73,7 @@ export function parseOperand(raw: string): { ok: true; op: Operand } | { ok: fal
   const rm = /^R([0-7])$/.exec(s);
   if (rm) return { ok: true, op: { k: 'reg', i: Number(rm[1]) } };
   if (/^\d+$/.test(s)) return { ok: true, op: { k: 'const', v: BigInt(s) } };
-  return { ok: false, error: `无法识别「${raw.trim() || '空'}」，请写 A/B/C、R0–R7 或十进制整数` };
+  return { ok: false, error: `無法識別「${raw.trim() || '空'}」，請寫 A/B/C、R0–R7 或十進位整數` };
 }
 
 export type ValParse =
@@ -89,7 +89,7 @@ export function parseValueExpr(raw: string): ValParse {
     .replace(/[−－]/g, '-')
     .replace(/\s+/g, '')
     .toUpperCase();
-  if (!src) return { ok: false, error: '式子不能为空' };
+  if (!src) return { ok: false, error: '式子不能為空' };
 
   let i = 0;
   const peek = () => src[i] ?? '';
@@ -116,7 +116,7 @@ export function parseValueExpr(raw: string): ValParse {
     if (peek() === '(') {
       eat();
       const inner = parseExpr();
-      if (eat() !== ')') fail('括号未闭合');
+      if (eat() !== ')') fail('括號未閉合');
       return inner;
     }
     if (peek() === 'R') {
@@ -132,17 +132,17 @@ export function parseValueExpr(raw: string): ValParse {
     }
     const c = eat();
     if (c === 'A' || c === 'B' || c === 'C') return { k: 'in', name: c };
-    return fail(`无法识别「${c || '文末'}」`);
+    return fail(`無法識別「${c || '文末'}」`);
   }
 
   try {
     const ast = parseExpr();
-    if (i !== src.length) return { ok: false, error: `式子末尾有多余字符「${src.slice(i)}」` };
+    if (i !== src.length) return { ok: false, error: `式子末尾有多餘字元「${src.slice(i)}」` };
     const ops = countValOps(ast);
-    if (ops > MAX_OPS) return { ok: false, error: `最多 ${MAX_OPS} 个运算，当前 ${ops} 个` };
+    if (ops > MAX_OPS) return { ok: false, error: `最多 ${MAX_OPS} 個運算，當前 ${ops} 個` };
     return { ok: true, ast, ops };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : '式子无法解析' };
+    return { ok: false, error: e instanceof Error ? e.message : '式子無法解析' };
   }
 }
 
@@ -168,7 +168,7 @@ export function parseProgram(raw: string): ParseResult {
     .replace(/[−－]/g, '-')
     .replace(/\s+/g, '')
     .toUpperCase();
-  if (!src) return { ok: false, error: '军令不能为空' };
+  if (!src) return { ok: false, error: '軍令不能為空' };
 
   let i = 0;
   const peek = () => src[i] ?? '';
@@ -195,23 +195,23 @@ export function parseProgram(raw: string): ParseResult {
     if (peek() === '(') {
       eat();
       const inner = parseExpr();
-      if (eat() !== ')') fail('括号未闭合');
+      if (eat() !== ')') fail('括號未閉合');
       return inner;
     }
     const c = eat();
     if (c === 'A' || c === 'B' || c === 'C') return { k: 'var', name: c };
-    return fail(`无法识别「${c || '文末'}」，只能写 A / B / C 与 + - * /`);
+    return fail(`無法識別「${c || '文末'}」，只能寫 A / B / C 與 + - * /`);
   }
 
   try {
     const ast = parseExpr();
-    if (i !== src.length) return { ok: false, error: `式子末尾有多余字符「${src.slice(i)}」` };
+    if (i !== src.length) return { ok: false, error: `式子末尾有多餘字元「${src.slice(i)}」` };
     const ops = countOps(ast);
-    if (ops > MAX_OPS) return { ok: false, error: `最多 ${MAX_OPS} 个运算，当前 ${ops} 个` };
-    if (ops < 1) return { ok: false, error: '请至少写一个运算，例如 A+B' };
+    if (ops > MAX_OPS) return { ok: false, error: `最多 ${MAX_OPS} 個運算，當前 ${ops} 個` };
+    if (ops < 1) return { ok: false, error: '請至少寫一個運算，例如 A+B' };
     return { ok: true, ast, canonical: canonicalOf(ast), ops, used: usedVars(ast) };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : '军令无法解析' };
+    return { ok: false, error: e instanceof Error ? e.message : '軍令無法解析' };
   }
 }
 
@@ -289,7 +289,7 @@ export function zeroDivisorReason(e: Expr, A: bigint, B: bigint, C: bigint, bits
     if ('err' in L) return L;
     if ('err' in R) return R;
     if (x.op === '/') {
-      if (R.v === 0n) return { err: '除数为 0，无法注入' };
+      if (R.v === 0n) return { err: '除數為 0，無法注入' };
       return { v: L.v / R.v, w: L.w };
     }
     if (x.op === '+') return { v: L.v + R.v, w: Math.max(L.w, R.w) + 1 };

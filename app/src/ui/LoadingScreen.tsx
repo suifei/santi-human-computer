@@ -70,7 +70,7 @@ export default function LoadingScreen({ onEnter }: { onEnter: () => void }) {
             ))}
           </h1>
           <motion.p
-            className="mt-3 font-song text-[16px] tracking-[0.4em]"
+            className="mt-3 font-song text-[16px] tracking-[0.12em]"
             style={{ color: 'var(--earth-300)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -95,7 +95,7 @@ export default function LoadingScreen({ onEnter }: { onEnter: () => void }) {
           </div>
 
           <p className="absolute bottom-8 text-[12px]" style={{ color: 'var(--earth-500)' }}>
-            红 = 1 · 蓝 = 0 · 鼓响为令
+            紅 = 1 · 藍 = 0 · 鼓響為令
           </p>
         </motion.div>
       )}
