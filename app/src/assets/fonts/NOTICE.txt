@@ -2,11 +2,6 @@
 来源 https://www.cns11643.gov.tw/
 授权：政府资料开放授权条款第一版（亦可 OFL 1.1）
 
-正文与控件：清松手寫體 5 比例版（行楷，子集后称 QinYardXingKai）
-来源 https://github.com/jasonhandwriting/JasonHandwriting
-授权：SIL Open Font License 1.1（见 OFL-xingkai.txt）
-保留名 JasonHandwriting，本仓库子集不得使用该名。
-
-缺字回退：霞鹜文楷 TC Regular（子集后称 QinYardKai）
-来源 https://github.com/lxgw/LxgwWenkaiTC
-授权：SIL Open Font License 1.1（见 OFL-wenkai-tc.txt）
+按钮与信息：齊伋體（黄令东 / Lingdong Huang）
+来源 https://github.com/LingDong-/qiji-font
+授权：SIL Open Font License 1.1（见 OFL-qiji.txt）

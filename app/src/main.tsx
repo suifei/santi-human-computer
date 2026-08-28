@@ -10,7 +10,7 @@ document.documentElement.style.setProperty(
   `url("${asset('paper-grain.jpg')}")`,
 )
 
-/** `base: './'`（kimi.link / 本地）不设 basename；GitHub Pages 用 `/santi-human-computer/` */
+/** `base: './'`（本地预览）不设 basename；GitHub Pages 用 `/santi-human-computer/` */
 function routerBasename(): string | undefined {
   const base = import.meta.env.BASE_URL
   if (!base || base === '/' || base === './') return undefined

@@ -9,11 +9,13 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { SkyDome } from '@/three/Environment';
 import QinSoldier from '@/three/QinSoldier';
 import VonNeumann from '@/three/VonNeumann';
+import Emperor from '@/three/Emperor';
 import { QIN_SOLDIER, formatBytes } from '@/three/qinAsset';
 import { VON_NEUMANN } from '@/three/vonNeumannAsset';
+import { EMPEROR } from '@/three/emperorAsset';
 import { asset, cn } from '@/lib/utils';
 
-type Subject = 'qin' | 'vn';
+type Subject = 'qin' | 'vn' | 'emperor';
 
 type Plate = 'front' | 'threeQuarter' | 'side' | 'back' | 'head' | 'full' | 'rightFace';
 
@@ -138,8 +140,9 @@ function LoadGate() {
 
 export default function AssetStudio() {
   const [params, setParams] = useSearchParams();
-  const subject: Subject = params.get('who') === 'vn' ? 'vn' : 'qin';
-  const spec = subject === 'vn' ? VON_NEUMANN : QIN_SOLDIER;
+  const who = params.get('who');
+  const subject: Subject = who === 'vn' ? 'vn' : who === 'emperor' ? 'emperor' : 'qin';
+  const spec = subject === 'vn' ? VON_NEUMANN : subject === 'emperor' ? EMPEROR : QIN_SOLDIER;
   const [plate, setPlate] = useState<Plate>('threeQuarter');
   const [wire, setWire] = useState(false);
   const [spin, setSpin] = useState(false);
@@ -149,7 +152,7 @@ export default function AssetStudio() {
   const setSubject = (who: Subject) => {
     const next = new URLSearchParams(params);
     if (who === 'qin') next.delete('who');
-    else next.set('who', 'vn');
+    else next.set('who', who);
     setParams(next, { replace: true });
   };
 
@@ -167,7 +170,7 @@ export default function AssetStudio() {
   return (
     <div className="fixed inset-0 overflow-hidden" style={{ background: 'var(--ink)' }}>
       <Canvas
-        aria-label={subject === 'vn' ? '馮諾依曼點驗' : '秦卒點驗'}
+        aria-label={subject === 'vn' ? '馮諾依曼點驗' : subject === 'emperor' ? '始皇點驗' : '秦卒點驗'}
         dpr={[1, 2]}
         shadows={{ type: THREE.PCFShadowMap }}
         camera={{ fov: 35, near: 0.08, far: 900, position: [1.85, 1.38, 2.35] }}
@@ -183,7 +186,9 @@ export default function AssetStudio() {
           <InspectionGround />
           {subject === 'vn'
             ? <VonNeumann wireframe={wire} />
-            : <QinSoldier wireframe={wire} human={human} />}
+            : subject === 'emperor'
+              ? <Emperor wireframe={wire} />
+              : <QinSoldier wireframe={wire} human={human} />}
           <HeightStaff height={spec.heightM} />
           <OrbitControls
             makeDefault
@@ -214,8 +219,8 @@ export default function AssetStudio() {
           <div className="flex items-center gap-2.5">
             <img src={asset('logo-seal.svg')} alt="" width={28} height={28} className="rounded-sm" />
             <div className="leading-tight">
-              <div className="font-brush text-[24px] tracking-[0.12em] text-paper">{subject === 'vn' ? '點驗馮諾依曼' : '點驗秦卒'}</div>
-              <div className="text-[13px] tracking-[0.08em]" style={{ color: 'var(--earth-300)' }}>{subject === 'vn' ? '監軍台靜模 · 無貼圖' : '靜模一兵 · 未列人海'}</div>
+              <div className="font-brush text-[24px] tracking-[0.12em] text-paper">{subject === 'vn' ? '點驗馮諾依曼' : subject === 'emperor' ? '點驗始皇' : '點驗秦卒'}</div>
+              <div className="text-[13px] tracking-[0.08em]" style={{ color: 'var(--earth-300)' }}>{subject === 'vn' ? '監軍台靜模' : subject === 'emperor' ? '監軍台靜模 · 玄衣持圭' : '靜模一兵 · 未列人海'}</div>
             </div>
           </div>
           <nav className="flex items-center gap-5 text-[15px]">
@@ -229,7 +234,7 @@ export default function AssetStudio() {
         <aside className="pointer-events-auto panel absolute left-4 top-20 hidden w-[17.5rem] p-4 md:block" style={{ color: 'var(--sand)' }}>
           <div className="panel-title mb-3">點驗牘</div>
           <div className="mb-3 flex gap-1">
-            {([['qin', '秦卒'], ['vn', '馮諾依曼']] as const).map(([id, label]) => (
+            {([['qin', '秦卒'], ['vn', '馮諾依曼'], ['emperor', '始皇']] as const).map(([id, label]) => (
               <button
                 key={id}
                 type="button"
@@ -248,7 +253,11 @@ export default function AssetStudio() {
           <p className="font-song text-[15px] leading-[1.85]" style={{ color: 'var(--paper)' }}>
             {subject === 'vn' ? (
               <>
-                用戶製作的 <span className="font-mono">vonneumann-proto.glb</span>，扶成身高 {VON_NEUMANN.heightM.toFixed(2)}m、腳底貼地、面朝 +Z。源檔只有幾何，無 UV / 反照率。
+                用戶製作的 <span className="font-mono">vonneumann-proto.glb</span>，扶成身高 {VON_NEUMANN.heightM.toFixed(2)}m、腳底貼地、面朝 +Z。有貼圖則用自帶材質，否則灰陶。
+              </>
+            ) : subject === 'emperor' ? (
+              <>
+                用戶製作的 <span className="font-mono">emperor-proto.glb</span>，扶成身高 {EMPEROR.heightM.toFixed(2)}m、腳底貼地、面朝 +Z，貼圖用模型自帶反照率。
               </>
             ) : (
               <>
@@ -260,9 +269,9 @@ export default function AssetStudio() {
             <dt style={{ color: 'var(--bronze)' }}>身高</dt>
             <dd className="font-mono-num">{spec.heightM.toFixed(2)} m</dd>
             <dt style={{ color: 'var(--bronze)' }}>面數</dt>
-            <dd className="font-mono-num">{(subject === 'vn' ? VON_NEUMANN.tris : QIN_SOLDIER.showcaseTris).toLocaleString()} 三角</dd>
+            <dd className="font-mono-num">{(subject === 'vn' ? VON_NEUMANN.tris : subject === 'emperor' ? EMPEROR.tris : QIN_SOLDIER.showcaseTris).toLocaleString()} 三角</dd>
             <dt style={{ color: 'var(--bronze)' }}>體積</dt>
-            <dd className="font-mono-num">{formatBytes(subject === 'vn' ? VON_NEUMANN.bytes : QIN_SOLDIER.showcaseBytes)}</dd>
+            <dd className="font-mono-num">{formatBytes(subject === 'vn' ? VON_NEUMANN.bytes : subject === 'emperor' ? EMPEROR.bytes : QIN_SOLDIER.showcaseBytes)}</dd>
             <dt style={{ color: 'var(--bronze)' }}>許可</dt>
             <dd>
               <a href={spec.sourceUrl} target="_blank" rel="noreferrer" className="hover:text-gold">
@@ -276,7 +285,7 @@ export default function AssetStudio() {
             </p>
           ) : (
             <p className="mt-3 text-[13px] leading-[1.8]" style={{ color: 'var(--earth-300)' }}>
-              演算場監軍台上同一具靜模。始皇 GLB 未到，先單人站側位。
+              {subject === 'emperor' ? '演算場監軍台上同一具靜模，與馮諾依曼同台面朝操場。' : '演算場監軍台上同一具靜模，與始皇同台面朝操場。'}
             </p>
           )}
         </aside>

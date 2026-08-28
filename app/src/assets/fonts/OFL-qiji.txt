@@ -1,9 +1,9 @@
-Copyright (c) 2020, Jason (Yu Ching Sung) https://github.com/jasonhandwriting/JasonHandwriting
-with Reserved Font Name JasonHandwriting.
+Copyright (c) 2020, Lingdong Huang i@lingdong.works,
+with Reserved Font Name QIJI.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
-https://openfontlicense.org
+http://scripts.sil.org/OFL
 
 
 -----------------------------------------------------------
@@ -39,8 +39,8 @@ distributed by the Copyright Holder(s).
 
 "Modified Version" refers to any derivative made by adding to, deleting,
 or substituting -- in part or in whole -- any of the components of the
-Original Version, by changing formats or by porting the Font Software to
-a new environment.
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
 
 "Author" refers to any designer, engineer, programmer, technical
 writer or other person who contributed to the Font Software.

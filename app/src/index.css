@@ -50,7 +50,7 @@
   html {
     background-color: var(--ink);
     color: var(--sand);
-    font-family: 'QinYardXingKai', 'QinYardKai', serif;
+    font-family: 'Qiji', serif;
   }
 
   body {
@@ -70,9 +70,9 @@
 }
 
 @layer utilities {
-  .font-brush { font-family: 'ShuowenSeal', 'QinYardXingKai', 'QinYardKai', serif; }
-  .font-song { font-family: 'QinYardXingKai', 'QinYardKai', serif; }
-  .font-hei { font-family: 'QinYardXingKai', 'QinYardKai', serif; }
+  .font-brush { font-family: 'ShuowenSeal', 'Qiji', serif; }
+  .font-song { font-family: 'Qiji', serif; }
+  .font-hei { font-family: 'Qiji', serif; }
   .font-mono-num { font-family: 'JetBrains Mono', monospace; }
 
   .panel {

@@ -16,22 +16,22 @@ In *The Three-Body Problem*, Qin Shi Huang builds a computer from thirty million
 
 - **Default campaign** — unsigned 10-bit `(A + B) × C`: **932 gates / 62 ticks / 21-bit output**. Example `(1013 + 1012) × 1001 = 2027025`. Widths 10 / 16 / 32; at most three binary ops; output ≤ 65 bits. Flags are live truth values, not a JavaScript result played back as animation.
 - **Program mode** — one fixed CPU field (registers, add / sub / mul / div, and compare, all standing). Instructions activate units; they do not rebuild the army. 10-bit: **2266 gates**. `(A+B)*C` is add, then mul.
-- **Live** — [open the yard](https://suifei.github.io/santi-human-computer/) · [v1.2](https://github.com/suifei/santi-human-computer/releases/tag/v1.2)
+- **Live** — [open the yard](https://suifei.github.io/santi-human-computer/) · [v1.3](https://github.com/suifei/santi-human-computer/releases/tag/v1.3)
 
 <p align="center">
   <a href="https://suifei.github.io/santi-human-computer/"><strong>打开演算场</strong></a>
   ·
-  <a href="https://santi.ok.kimi.link">kimi.link</a>
-  ·
-  <a href="https://github.com/suifei/santi-human-computer/releases/tag/v1.2">v1.2</a>
+  <a href="https://github.com/suifei/santi-human-computer/releases/tag/v1.3">v1.3</a>
   ·
   <a href="https://suifei.github.io/santi-human-computer/principle">原理</a>
   ·
   <a href="https://suifei.github.io/santi-human-computer/formation">阵图</a>
+  ·
+  <a href="https://suifei.github.io/santi-human-computer/asset">点验</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/suifei/santi-human-computer/releases/tag/v1.2"><img alt="v1.2" src="https://img.shields.io/github/v/release/suifei/santi-human-computer?label=release&color=A32E22" /></a>
+  <a href="https://github.com/suifei/santi-human-computer/releases/tag/v1.3"><img alt="v1.3" src="https://img.shields.io/github/v/release/suifei/santi-human-computer?label=release&color=A32E22" /></a>
   <img alt="932 门" src="https://img.shields.io/badge/士兵-932-A32E22" />
   <img alt="10 位" src="https://img.shields.io/badge/位宽-10bit-B08A4F" />
   <img alt="pages" src="https://img.shields.io/github/actions/workflow/status/suifei/santi-human-computer/deploy-pages.yml?label=GitHub%20Pages" />
@@ -39,15 +39,28 @@ In *The Three-Body Problem*, Qin Shi Huang builds a computer from thirty million
 
 标题「人列計算機」用说文解字小篆；界面与正文用黄令东齐伋体。士兵是逻辑门，旗帜是真值——没有「JS 先算完再回放」。
 
+## 机位 1–6
+
+热键 `1`–`6` 切到演算场预设机位（真模：监军台、鼓台、营帐、始皇与冯诺依曼）。
+
+| 1 全景 | 2 俯瞰 |
+| :---: | :---: |
+| ![1 全景](docs/screenshots/01-yard.png) | ![2 俯瞰](docs/screenshots/01-yard-top.png) |
+| **3 注入列** | **4 鼓台** |
+| ![3 注入列](docs/screenshots/02-input.png) | ![4 鼓台](docs/screenshots/03-drum.png) |
+| **5 輸出端** | **6 監軍台** |
+| ![5 輸出端](docs/screenshots/05-output.png) | ![6 監軍台](docs/screenshots/06-command.png) |
+
 ## 在线演示
 
-| 页面 | GitHub Pages | kimi.link |
-| --- | --- | --- |
-| 演算场 | https://suifei.github.io/santi-human-computer/ | https://santi.ok.kimi.link |
-| 原理 | https://suifei.github.io/santi-human-computer/principle | https://santi.ok.kimi.link/principle |
-| 阵图 | https://suifei.github.io/santi-human-computer/formation | https://santi.ok.kimi.link/formation |
+| 页面 | GitHub Pages |
+| --- | --- |
+| 演算场 | https://suifei.github.io/santi-human-computer/ |
+| 原理 | https://suifei.github.io/santi-human-computer/principle |
+| 阵图 | https://suifei.github.io/santi-human-computer/formation |
+| 點驗 | https://suifei.github.io/santi-human-computer/asset |
 
-左键旋转、右键平移、滚轮缩放；点士兵看指令卡。`空格` 击鼓，`1`–`5` 换机位，`F` 跟随信号。横屏更好看。
+左键旋转、右键平移、滚轮缩放；点士兵看指令卡。`空格` 击鼓，`1`–`6` 换机位，`F` 跟随信号。横屏更好看。
 
 ## 默认军令
 
@@ -56,8 +69,6 @@ In *The Three-Body Problem*, Qin Shi Huang builds a computer from thirty million
 位宽可选 10 / 16 / 32；军令最多 3 个二元运算，输出不超过 65 位。一条表达式铺一张专用网表（`A+B`、`A×B`、`(A+B)×C` …）。
 
 信号南 → 北：输入手 001–030 → 加法阵 → 部分积 → 移位累加 → 输出手 901–921。DONE 旗举红即算完。
-
-![演算场俯瞰：932 人按网表布阵](docs/screenshots/01-yard-top.png)
 
 ## 程序档
 
@@ -96,7 +107,7 @@ npm install --replace-registry-host=always --registry https://registry.npmmirror
 
 ## 版本
 
-当前发布 [v1.2](https://github.com/suifei/santi-human-computer/releases/tag/v1.2)。推送到 `main` 会自动构建并发布到 GitHub Pages。
+当前发布 [v1.3](https://github.com/suifei/santi-human-computer/releases/tag/v1.3)。推送到 `main` 会自动构建并发布到 GitHub Pages。
 
 Vite 7 · React 19 · TypeScript · Three.js / React Three Fiber · Zustand · Tailwind。人与旗共用一套 InstancedMesh，下标即 `gate.index`。默认 932 人一批绘制；程序档 10 位 2266 人同样一批。
 
@@ -104,4 +115,3 @@ Vite 7 · React 19 · TypeScript · Three.js / React Three Fiber · Zustand · T
 
 以 [MIT 许可证](LICENSE) 发布。  
 Released under the [MIT License](LICENSE).
-

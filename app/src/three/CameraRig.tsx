@@ -20,9 +20,9 @@ function presetsFromBounds(b: FieldBounds) {
     overview: { pos: [cx + span * 0.55, h, cz + span * 0.55] as [number, number, number], tgt: [cx, 0.8, cz] as [number, number, number] },
     top: { pos: [cx + 0.1, Math.max(58, span * 0.75), cz + 0.1] as [number, number, number], tgt: [cx, 0, cz] as [number, number, number] },
     input: { pos: [cx, 2.8, b.maxZ + 8] as [number, number, number], tgt: [cx, 1.15, b.maxZ - 1] as [number, number, number] },
-    drum: { pos: [cx + span * 0.25, 4.5, cz + span * 0.15] as [number, number, number], tgt: [cx, 1.2, cz] as [number, number, number] },
+    drum: { pos: [18.4, 3.85, 21.6] as [number, number, number], tgt: [25, 2.45, 16] as [number, number, number] },
     output: { pos: [b.maxX + 4, 5, b.minZ - 6] as [number, number, number], tgt: [cx, 1.2, b.minZ + 4] as [number, number, number] },
-    command: { pos: [19.2, 5.55, -14.2] as [number, number, number], tgt: [24.4, 4.85, -17] as [number, number, number] },
+    command: { pos: [16.4, 3.35, -15.2] as [number, number, number], tgt: [24.4, 2.55, -16.9] as [number, number, number] },
   };
 }
 

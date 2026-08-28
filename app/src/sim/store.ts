@@ -11,7 +11,8 @@ import {
 import { evalExpr, parseProgram, zeroDivisorReason, DEFAULT_BITS, DEFAULT_EXPR, REG_COUNT } from './program';
 import { parseLang, DEFAULT_PROGRAM } from './lang';
 import { applyResult, createVm, nextCampaign, type Campaign, type Vm } from './vm';
-import { drumHit, drumRoll, resetTriple, setMuted as setAudioMuted } from './audio';
+import { cancelOrder, drumHit, drumRoll, resetTriple, setMuted as setAudioMuted, speakOrder, unlockSpeech } from './audio';
+import { ORDERS, lineDone, lineInjectStart, lineProgramDone, lineProgramNext } from './orders';
 
 function selfCheck(nl: Netlist) {
   const parsed = parseProgram(nl.expr);
@@ -105,6 +106,7 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 let toastSeq = 0;
 let programVm: Vm | null = null;
 let programCamp: Campaign | null = null;
+let lastSpokenSrcLine = 0;
 
 function clampInputs(bits: BitWidth, inputs: { A: number; B: number; C: number }) {
   const max = inputMax(bits);
@@ -118,6 +120,11 @@ export const useSim = create<SimStore>((set, get) => {
   if (import.meta.env.DEV) selfCheck(netlist);
 
   const clearTimer = () => { if (timer) { clearTimeout(timer); timer = null; } };
+
+  const announceError = (msg: string) => {
+    get().toast(msg);
+    speakOrder(msg);
+  };
 
   const campaignUntil = () => {
     const s = get();
@@ -159,7 +166,7 @@ export const useSim = create<SimStore>((set, get) => {
           status: 'DONE', result: programVm.regs[0] ?? result, finishedAt: performance.now(), flipFast: false,
           programLabel: '', programOp: null, programUntil: 0,
         });
-        s.toast(next.error);
+        announceError(next.error);
         return;
       }
       if ('halt' in next) {
@@ -170,6 +177,7 @@ export const useSim = create<SimStore>((set, get) => {
           programLabel: '完成', programOp: null, programUntil: 0,
         });
         drumRoll();
+        speakOrder(lineProgramDone(out), { lagMs: 850 });
         s.toast(`程序完成：R0 = ${out.toLocaleString()} · ${programVm.rounds} 輪人列`);
         return;
       }
@@ -179,6 +187,7 @@ export const useSim = create<SimStore>((set, get) => {
     }
     set({ status: 'DONE', result, finishedAt: performance.now(), flipFast: false });
     drumRoll();
+    speakOrder(lineDone(result), { lagMs: 850 });
     s.toast(`演算完成：${displayExpr(s.expr)} = ${result.toLocaleString()}`);
   };
 
@@ -197,11 +206,11 @@ export const useSim = create<SimStore>((set, get) => {
   const rebuild = (expr: string, bits: BitWidth): boolean => {
     const s = get();
     if (s.status === 'RUNNING' || s.status === 'INJECTING' || s.status === 'RESETTING') {
-      s.toast('演算中不能換軍令');
+      announceError('演算中不能換軍令');
       return false;
     }
     const r = tryBuildNetlist(expr, bits);
-    if (!r.ok) { s.toast(r.error); return false; }
+    if (!r.ok) { announceError(r.error); return false; }
     clearTimer();
     const inputs = clampInputs(bits, s.inputs);
     const values = new Uint8Array(r.netlist.gates.length);
@@ -277,6 +286,12 @@ export const useSim = create<SimStore>((set, get) => {
     paintCpu(camp.netlist, camp);
     const { A, B, C } = camp.inject;
     if (!opts.stagger) {
+      if (!opts.flipFast && camp.line > lastSpokenSrcLine) {
+        lastSpokenSrcLine = camp.line;
+        speakOrder(lineProgramNext(camp.label), { skipIfReduced: true });
+      } else if (camp.line > lastSpokenSrcLine) {
+        lastSpokenSrcLine = camp.line;
+      }
       set({ status: opts.autoRun ? 'RUNNING' : 'READY' });
       if (opts.autoRun) {
         if (opts.flipFast) get().fastForward();
@@ -284,7 +299,9 @@ export const useSim = create<SimStore>((set, get) => {
       }
       return;
     }
+    lastSpokenSrcLine = camp.line;
     set({ status: 'INJECTING' });
+    speakOrder(lineInjectStart({ bits: s.bits, program: true, label: camp.label }));
     const nl = camp.netlist;
     const nA = Math.max(nl.inputA.length, nl.inputC.length, 1);
     const step = nA > 16 ? 20 : 50;
@@ -317,6 +334,7 @@ export const useSim = create<SimStore>((set, get) => {
     setTimeout(() => {
       set({ status: 'READY' });
       get().toast('全員已列陣，請擊鼓演算');
+      speakOrder(ORDERS.injectDone, { interrupt: false });
     }, nA * step + 50);
   }
 
@@ -352,7 +370,10 @@ export const useSim = create<SimStore>((set, get) => {
     programUntil: 0,
     regs: Array.from({ length: REG_COUNT }, () => 0n),
 
-    setIntroDone: () => set({ status: 'IDLE', introDone: true }),
+    setIntroDone: () => {
+      set({ status: 'IDLE', introDone: true });
+      speakOrder(ORDERS.enter);
+    },
 
     setInput: (k, v) => {
       const max = inputMax(get().bits);
@@ -375,7 +396,7 @@ export const useSim = create<SimStore>((set, get) => {
       if (get().mode === 'program') {
         const s = get();
         if (s.status === 'RUNNING' || s.status === 'INJECTING' || s.status === 'RESETTING') {
-          s.toast('演算中不能換位寬');
+          announceError('演算中不能換位寬');
           return false;
         }
         const nl = buildCpuNetlist(bits);
@@ -396,7 +417,7 @@ export const useSim = create<SimStore>((set, get) => {
     setMode: (mode) => {
       const s = get();
       if (s.status === 'RUNNING' || s.status === 'INJECTING' || s.status === 'RESETTING') {
-        s.toast('演算中不能切換');
+        announceError('演算中不能切換');
         return;
       }
       if (s.mode === mode) return;
@@ -424,14 +445,16 @@ export const useSim = create<SimStore>((set, get) => {
 
     inject: () => {
       const s = get();
+      unlockSpeech();
       if (s.status === 'INJECTING' || s.status === 'RUNNING') return;
       if (s.mode === 'program') {
         const parsed = parseLang(s.programText);
-        if (!parsed.ok) { s.toast(`第 ${parsed.line} 行：${parsed.error}`); return; }
+        if (!parsed.ok) { announceError(`第 ${parsed.line} 行：${parsed.error}`); return; }
         programVm = createVm(parsed.stmts, s.bits, s.inputs);
         const camp = nextCampaign(programVm);
-        if ('error' in camp) { s.toast(camp.error); programVm = null; return; }
-        if ('halt' in camp) { s.toast('程序沒有可執行的人列戰役'); programVm = null; return; }
+        if ('error' in camp) { announceError(camp.error); programVm = null; return; }
+        if ('halt' in camp) { announceError('程序沒有可執行的人列戰役'); programVm = null; return; }
+        lastSpokenSrcLine = 0;
         set({ status: 'RESETTING', regs: programVm.regs.slice(), result: null, startedAt: null, finishedAt: null });
         resetTriple();
         resetCore(true);
@@ -441,13 +464,16 @@ export const useSim = create<SimStore>((set, get) => {
       const parsed = parseProgram(s.expr);
       if (parsed.ok) {
         const z = zeroDivisorReason(parsed.ast, BigInt(s.inputs.A), BigInt(s.inputs.B), BigInt(s.inputs.C), s.bits);
-        if (z) { s.toast(z); return; }
+        if (z) { announceError(z); return; }
       }
       set({ status: 'RESETTING' });
       resetTriple();
       resetCore(true);
       setTimeout(() => {
         set({ status: 'INJECTING' });
+        const st = get();
+        const used = parsed.ok ? parsed.used : undefined;
+        speakOrder(lineInjectStart({ bits: st.bits, expr: st.expr, used }));
         const { A, B, C } = get().inputs;
         const nl = get().netlist;
         const nA = nl.inputA.length, nC = nl.inputC.length;
@@ -479,20 +505,25 @@ export const useSim = create<SimStore>((set, get) => {
         setTimeout(() => {
           set({ status: 'READY' });
           get().toast('注入完成，請擊鼓演算');
+          speakOrder(ORDERS.injectDone, { interrupt: false });
         }, nA * step + 50);
       }, 500);
     },
 
     toggleRun: () => {
       const s = get();
+      unlockSpeech();
       if (s.status === 'READY' || s.status === 'PAUSED') {
+        const resuming = s.status === 'PAUSED';
         set({ status: 'RUNNING', startedAt: s.startedAt ?? performance.now() });
+        speakOrder(resuming ? ORDERS.resume : ORDERS.run);
         schedule();
       } else if (s.status === 'RUNNING') {
         clearTimer();
         set({ status: 'PAUSED' });
+        speakOrder(ORDERS.pause);
       } else if (s.status === 'IDLE') {
-        s.toast('請先注入方陣');
+        announceError(ORDERS.needInject);
       }
     },
 
@@ -506,15 +537,17 @@ export const useSim = create<SimStore>((set, get) => {
         set({ tick: t, changed, commitNonce: get().commitNonce + 1, drumPulse: get().drumPulse + 1 });
         if (t >= campaignUntil()) finish();
       } else if (s.status === 'IDLE') {
-        s.toast('請先注入方陣');
+        announceError(ORDERS.needInject);
       }
     },
 
     resetAll: () => {
       const s = get();
       if (s.status === 'RESETTING' || s.status === 'LOADING') return;
+      cancelOrder();
       programVm = null;
       programCamp = null;
+      lastSpokenSrcLine = 0;
       set({ status: 'RESETTING', programOp: null, programUntil: 0, programLabel: '', programRound: 0, programLine: 0 });
       resetTriple();
       resetCore(true);
@@ -526,12 +559,15 @@ export const useSim = create<SimStore>((set, get) => {
 
     fastForward: () => {
       const s = get();
+      unlockSpeech();
       if (s.status !== 'READY' && s.status !== 'RUNNING' && s.status !== 'PAUSED') {
-        if (s.status === 'IDLE') s.toast('請先注入方陣');
+        if (s.status === 'IDLE') announceError(ORDERS.needInject);
         return;
       }
+      const alreadyFast = s.status === 'RUNNING' && s.flipFast;
       clearTimer();
       set({ status: 'RUNNING', flipFast: true, startedAt: s.startedAt ?? performance.now() });
+      if (!alreadyFast) speakOrder(ORDERS.fast);
       // 与 10 位相同：一层一拍、50ms 鼓点。大阵只是拍数更多，不一次吞掉整场。
       const BEAT_MS = 50;
       const fastTick = () => {

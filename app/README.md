@@ -8,5 +8,4 @@ npm run dev
 浏览器打开 http://localhost:3000（Vite 默认端口）。占用时可加 `-- --host --port 5175`。
 
 - GitHub Pages：https://suifei.github.io/santi-human-computer/
-- 发布：[v1.2](https://github.com/suifei/santi-human-computer/releases/tag/v1.2)
-- kimi.link：https://santi.ok.kimi.link
+- 发布：[v1.3](https://github.com/suifei/santi-human-computer/releases/tag/v1.3)

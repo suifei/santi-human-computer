@@ -1,13 +1,18 @@
-/** 环境：天空穹顶、夯土地面与地格、区域木牌、远景营帐、鼓台、监军台、火把（白昼场景） */
+/** 环境：天空穹顶、夯土地面与地格、区域木牌、远景营帐、鼓台、监军台、火把、飞鸟（白昼场景） */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useLoader } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { useSim } from '@/sim/store';
-import { makeSignTexture } from './textures';
+import { makeFlagTexture, makeSignTexture } from './textures';
 import { asset } from '@/lib/utils';
 import { waitAppFonts } from '@/lib/fonts';
 import VonNeumann from './VonNeumann';
+import Emperor from './Emperor';
+import QinSoldier from './QinSoldier';
+import { PROTO, protoUrl } from './protoAssets';
+import { bakeFit, firstMesh, findDeckY, placeOnGround, prepareProtoMaterials } from './fitModel';
 
 const now = () => performance.now() / 1000;
 const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -447,15 +452,17 @@ function Vegetation() {
     const r0 = layout.flatR + 5;
     const r1 = layout.flatR + 34;
     const all = scatterPlants(layout, 36, r0, r1, 6, 535 / 1493, 0.78, 1.42, 0x51CE);
+    const young = scatterPlants(layout, 16, r0 + 6, r1 - 4, 3.4, 535 / 1493, 0.72, 1.15, 0x7E21);
     const mid = Math.ceil(all.length / 2);
-    return { front: all.slice(0, mid), side: all.slice(mid) };
+    return { front: all.slice(0, mid), side: all.slice(mid).concat(young) };
   }, [layout]);
   const grasses = useMemo(() => {
     const r0 = layout.flatR + 1;
     const r1 = layout.flatR + 24;
     const all = scatterPlants(layout, 160, r0, r1, 0.72, 663 / 1004, 0.7, 1.55, 0x6A55);
+    const tufts = scatterPlants(layout, 48, r0 + 2, r1 - 2, 0.48, 663 / 1004, 0.85, 1.35, 0xA31C);
     const mid = Math.ceil(all.length / 2);
-    return { front: all.slice(0, mid), side: all.slice(mid) };
+    return { front: all.slice(0, mid).concat(tufts.slice(0, 24)), side: all.slice(mid).concat(tufts.slice(24)) };
   }, [layout]);
   return (
     <group>
@@ -467,23 +474,43 @@ function Vegetation() {
   );
 }
 
-/* ================= 远景营帐剪影 ================= */
+/* ================= 远景营帐 ================= */
 function Tents() {
+  const gltf = useGLTF(protoUrl('tent'));
   const bounds = useSim((s) => s.netlist.bounds);
   const layout = useMemo(() => fieldLayout(bounds), [bounds]);
-  const geom = useMemo(() => {
-    const parts: THREE.BufferGeometry[] = [];
-    for (const [x, z, s] of TENT_SPOTS) {
-      const y = terrainHeight(x, z, layout);
-      parts.push(new THREE.ConeGeometry(2.2 * s, 2.8 * s, 7).translate(x, y + 1.4 * s, z));
-      parts.push(new THREE.CylinderGeometry(0.03, 0.03, 2.2 * s, 4).translate(x, y + 2.8 * s + 1.1 * s, z));
+  const meshRef = useRef<THREE.InstancedMesh>(null!);
+  const { geom, mat } = useMemo(() => {
+    const mesh = firstMesh(gltf.scene);
+    const geom = mesh.geometry.clone();
+    geom.applyMatrix4(mesh.matrixWorld);
+    bakeFit(geom, 'height', PROTO.tent.heightM);
+    const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
+    if (mat.map) {
+      mat.map.colorSpace = THREE.SRGBColorSpace;
+      mat.map.flipY = false;
     }
-    return mergeGeometries(parts)!;
+    if (mat.metalness >= 0.99 && !mat.metalnessMap) mat.metalness = 0.05;
+    if (mat.roughness >= 0.99 && !mat.roughnessMap) mat.roughness = 0.88;
+    return { geom, mat };
+  }, [gltf.scene]);
+  useLayoutEffect(() => {
+    const inst = meshRef.current;
+    if (!inst) return;
+    const dummy = new THREE.Object3D();
+    TENT_SPOTS.forEach(([x, z, s], i) => {
+      dummy.position.set(x, terrainHeight(x, z, layout), z);
+      dummy.rotation.set(0, Math.atan2(layout.cx - x, layout.cz - z), 0);
+      dummy.scale.setScalar(s);
+      dummy.updateMatrix();
+      inst.setMatrixAt(i, dummy.matrix);
+    });
+    inst.count = TENT_SPOTS.length;
+    inst.instanceMatrix.needsUpdate = true;
+    inst.computeBoundingSphere();
   }, [layout]);
   return (
-    <mesh geometry={geom}>
-      <meshBasicMaterial color="#6E6252" />
-    </mesh>
+    <instancedMesh ref={meshRef} args={[geom, mat, TENT_SPOTS.length]} castShadow={false} receiveShadow />
   );
 }
 
@@ -511,22 +538,40 @@ function Torches() {
   );
 }
 
-/* ================= 鼓台（SE）+ 鼓手 ================= */
+/* ================= 鼓台（SE）+ 战鼓 + 鼓手 ================= */
 function DrumTower() {
+  const towerGltf = useGLTF(protoUrl('drumTower'));
+  const drumGltf = useGLTF(protoUrl('drum'));
   const armRef = useRef<THREE.Group>(null!);
-  const drumRef = useRef<THREE.Mesh>(null!);
+  const drumRef = useRef<THREE.Group>(null!);
   const pulseAt = useRef(-10);
   const drumPulse = useSim((s) => s.drumPulse);
   useEffect(() => { if (drumPulse > 0) pulseAt.current = now(); }, [drumPulse]);
 
+  const tower = useMemo(() => {
+    const cloned = towerGltf.scene.clone(true);
+    prepareProtoMaterials(cloned);
+    placeOnGround(cloned, PROTO.drumTower.heightM);
+    return cloned;
+  }, [towerGltf.scene]);
+  const deckY = useMemo(
+    () => findDeckY(tower, PROTO.drumTower.deckFrac),
+    [tower],
+  );
+
+  const drum = useMemo(() => {
+    const cloned = drumGltf.scene.clone(true);
+    prepareProtoMaterials(cloned);
+    placeOnGround(cloned, PROTO.drum.heightM);
+    return cloned;
+  }, [drumGltf.scene]);
+
   useFrame(() => {
     const dt = now() - pulseAt.current;
-    // 鼓手：击鼓帧 180ms 后回举槌
     if (armRef.current) {
       const p = Math.min(dt / 0.18, 1);
       armRef.current.rotation.x = -1.0 + Math.sin(p * Math.PI) * 1.25;
     }
-    // 鼓身 scale 1→1.06→1，220ms
     if (drumRef.current) {
       const p = Math.min(dt / 0.22, 1);
       const s = 1 + Math.sin(p * Math.PI) * 0.06;
@@ -534,61 +579,20 @@ function DrumTower() {
     }
   });
 
+  const standY = deckY + 0.02;
   return (
     <group position={[25, 0, 16]}>
-      {/* 夯土台 3m + 朝南台阶 */}
-      <mesh position={[0, 1.5, 0]} castShadow receiveShadow>
-        <boxGeometry args={[6, 3, 6]} />
-        <meshStandardMaterial color="#8A6C48" roughness={1} />
-      </mesh>
-      {[0, 1, 2].map((i) => (
-        <mesh key={i} position={[0, 0.25 + i * 0.5, 3.6 - i * 0.55]} castShadow>
-          <boxGeometry args={[2.2, 0.5, 1.1]} />
-          <meshStandardMaterial color="#9C7C52" roughness={1} />
-        </mesh>
-      ))}
-      {/* 四角立柱 + 灯笼 */}
-      {[[-2.6, -2.6], [2.6, -2.6], [-2.6, 2.6], [2.6, 2.6]].map(([x, z], i) => (
-        <group key={i} position={[x, 3, z]}>
-          <mesh position={[0, 0.9, 0]} castShadow>
-            <cylinderGeometry args={[0.06, 0.07, 1.8, 6]} />
-            <meshStandardMaterial color="#54402A" roughness={0.9} />
-          </mesh>
-          <mesh position={[0, 1.85, 0]}>
-            <sphereGeometry args={[0.16, 8, 6]} />
-            {/* 白昼灯笼不发光，仅朱红漆面 */}
-            <meshStandardMaterial color="#B0382A" emissive="#FF8C42" emissiveIntensity={0.12} />
-          </mesh>
+      <primitive object={tower} />
+      <group ref={drumRef} position={[0, standY, 0]}>
+        {/* 源档鼓膜法线沿 Z；鼓手在 +X 面朝 −X，绕 Y 转 90° 让鼓膜对人。 */}
+        <group rotation={[0, Math.PI / 2, 0]}>
+          <primitive object={drum} />
         </group>
-      ))}
-      {/* 大战鼓：朱红鼓身 + 黄铜钉 */}
-      <group position={[0, 3.95, -0.6]}>
-        <mesh ref={drumRef} rotation={[0, 0, Math.PI / 2]} castShadow>
-          <cylinderGeometry args={[0.8, 0.8, 0.7, 20]} />
-          <meshStandardMaterial color="#A32E22" roughness={0.6} metalness={0.1} />
-        </mesh>
-        {[-0.36, 0.36].map((x, i) => (
-          <mesh key={i} position={[x, 0, 0]} rotation={[0, (i * Math.PI) / 2 + Math.PI / 2, 0]}>
-            <circleGeometry args={[0.72, 20]} />
-            <meshStandardMaterial color="#E8DCC3" roughness={0.85} />
-          </mesh>
-        ))}
-        <mesh position={[0, -0.55, 0]}>
-          <boxGeometry args={[0.9, 0.35, 0.9]} />
-          <meshStandardMaterial color="#54402A" roughness={0.9} />
-        </mesh>
       </group>
-      {/* 鼓手 */}
-      <group position={[1.5, 3, -0.6]} rotation={[0, -Math.PI / 2, 0]}>
-        <mesh position={[0, 0.55, 0]} castShadow>
-          <cylinderGeometry args={[0.17, 0.26, 1.1, 7]} />
-          <meshStandardMaterial color="#33302B" roughness={0.85} />
-        </mesh>
-        <mesh position={[0, 1.3, 0]} castShadow>
-          <sphereGeometry args={[0.15, 8, 6]} />
-          <meshStandardMaterial color="#B98A62" roughness={0.8} />
-        </mesh>
-        <group ref={armRef} position={[0, 1.05, 0.1]}>
+      {/* 鼓手站甲板 +X 侧，面朝战鼓（local +Z → 世界 -X），避开台阶与鼓身。 */}
+      <group position={[1.55, standY, 0.28]} rotation={[0, -Math.PI / 2, 0]}>
+        <QinSoldier />
+        <group ref={armRef} position={[0.18, 1.05, 0.22]}>
           <mesh position={[0, 0.28, 0.12]} rotation={[0.5, 0, 0]}>
             <cylinderGeometry args={[0.035, 0.035, 0.6, 5]} />
             <meshStandardMaterial color="#33302B" roughness={0.85} />
@@ -599,39 +603,152 @@ function DrumTower() {
           </mesh>
         </group>
       </group>
+      <DrumSideFlag standY={standY} />
+    </group>
+  );
+}
+
+/** 鼓手侧独立旗杆（木杆+旗面），不插进鼓身，旗 DoubleSide 可翻面。 */
+function DrumSideFlag({ standY }: { standY: number }) {
+  const tex = useMemo(() => makeFlagTexture(true), []);
+  useLayoutEffect(() => () => tex.dispose(), [tex]);
+  return (
+    <group position={[2.15, standY, 1.2]}>
+      <mesh position={[0, 1.31, 0]} castShadow>
+        <cylinderGeometry args={[0.016, 0.016, 2.62, 6]} />
+        <meshStandardMaterial color="#4A3726" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 2.62, 0]} castShadow>
+        <sphereGeometry args={[0.03, 6, 5]} />
+        <meshStandardMaterial color="#8A6B3A" metalness={0.35} roughness={0.45} />
+      </mesh>
+      <mesh position={[0.275, 2.26, 0]} castShadow>
+        <planeGeometry args={[0.55, 0.38, 6, 2]} />
+        <meshStandardMaterial map={tex} side={THREE.DoubleSide} roughness={0.82} metalness={0} />
+      </mesh>
     </group>
   );
 }
 
 /* ================= 监军台（NE） ================= */
 function CommandTower() {
+  const gltf = useGLTF(protoUrl('cmd'));
+  const tower = useMemo(() => {
+    const cloned = gltf.scene.clone(true);
+    prepareProtoMaterials(cloned);
+    placeOnGround(cloned, PROTO.cmd.heightM);
+    return cloned;
+  }, [gltf.scene]);
+  const deckY = useMemo(
+    () => findDeckY(tower, PROTO.cmd.deckFrac),
+    [tower],
+  );
+
+  const standY = deckY + 0.02;
+  const lamp = useMemo(() => new THREE.Object3D(), []);
   return (
     <group position={[25, 0, -17]} rotation={[0, -Math.PI / 2, 0]}>
-      <mesh position={[0, 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[6, 4, 6]} />
-        <meshStandardMaterial color="#7A5E3E" roughness={1} />
-      </mesh>
-      {/* 华盖四柱 + 攒尖顶 */}
-      {[[-2.4, -2.4], [2.4, -2.4], [-2.4, 2.4], [2.4, 2.4]].map(([x, z], i) => (
-        <mesh key={i} position={[x, 5.1, z]} castShadow>
-          <cylinderGeometry args={[0.08, 0.09, 2.2, 6]} />
-          <meshStandardMaterial color="#4A3826" roughness={0.9} />
-        </mesh>
-      ))}
-      <mesh position={[0, 6.8, 0]} castShadow>
-        <coneGeometry args={[4.2, 1.6, 4]} />
-        <meshStandardMaterial color="#54402A" roughness={0.9} />
-      </mesh>
-      {/* 凭几 */}
-      <mesh position={[0, 4.35, 1.2]}>
-        <boxGeometry args={[1.6, 0.5, 0.5]} />
-        <meshStandardMaterial color="#54402A" roughness={0.9} />
-      </mesh>
-      {/* 冯·诺依曼：与始皇同台；始皇 GLB 未到，先站侧位 */}
-      <group position={[-0.85, 4, 0.35]}>
+      <primitive object={tower} />
+      <primitive object={lamp} position={[0, standY + 0.95, 0.45]} />
+      <spotLight
+        position={[0, standY + 2.2, 0.7]}
+        target={lamp}
+        angle={0.72}
+        penumbra={0.48}
+        intensity={3.2}
+        color="#FFE6C4"
+        distance={7.5}
+        decay={1.7}
+        castShadow={false}
+      />
+      <pointLight
+        position={[0, standY + 1.9, 0.35]}
+        color="#FFD9A8"
+        intensity={1.35}
+        distance={5.8}
+        decay={2}
+      />
+      <group position={[0.92, standY, 0.32]}>
+        <Emperor />
+      </group>
+      <group position={[-0.92, standY, 0.32]}>
         <VonNeumann />
       </group>
     </group>
+  );
+}
+
+/* ================= 飞鸟盘旋 ================= */
+const BIRD_COUNT = 7;
+
+function birdPose(t: number, i: number, cx: number, cz: number) {
+  const slow = reducedMotion ? 0.06 : 1;
+  const layer = i % 3;
+  const y0 = 16.5 + layer * 4.2;
+  if (i % 3 === 2) {
+    const r = 26 + (i % 2) * 10;
+    const a = t * 0.22 * slow + i * 1.1;
+    const x = cx + Math.sin(a) * r;
+    const z = cz + Math.sin(a) * Math.cos(a) * r * 0.62;
+    const vx = Math.cos(a) * 0.22 * slow * r;
+    const vz = (Math.cos(2 * a)) * 0.22 * slow * r * 0.62;
+    return { x, y: y0 + Math.sin(a * 2 + i) * 0.7, z, yaw: Math.atan2(vx, vz) };
+  }
+  const r = 24 + layer * 9 + (i % 2) * 3;
+  const dir = i % 2 === 0 ? 1 : -1;
+  const a = dir * t * (0.18 + layer * 0.03) * slow + i * 0.85;
+  const x = cx + Math.cos(a) * r;
+  const z = cz + Math.sin(a) * r;
+  const vx = -Math.sin(a) * dir * r;
+  const vz = Math.cos(a) * dir * r;
+  return { x, y: y0 + Math.sin(a * 3 + i) * 0.55, z, yaw: Math.atan2(vx, vz) };
+}
+
+function Birds() {
+  const gltf = useGLTF(protoUrl('bird'));
+  const bounds = useSim((s) => s.netlist.bounds);
+  const cx = Number.isFinite(bounds.minX) ? (bounds.minX + bounds.maxX) / 2 : 0;
+  const cz = Number.isFinite(bounds.minZ) ? (bounds.minZ + bounds.maxZ) / 2 : 0;
+  const meshRef = useRef<THREE.InstancedMesh>(null!);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const { geom, mat } = useMemo(() => {
+    const mesh = firstMesh(gltf.scene);
+    const geom = mesh.geometry.clone();
+    geom.applyMatrix4(mesh.matrixWorld);
+    bakeFit(geom, 'spanX', PROTO.bird.wingspanM);
+    const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
+    if (mat.map) {
+      mat.map.colorSpace = THREE.SRGBColorSpace;
+      mat.map.flipY = false;
+    }
+    if (mat.metalness >= 0.99 && !mat.metalnessMap) mat.metalness = 0.04;
+    if (mat.roughness >= 0.99 && !mat.roughnessMap) mat.roughness = 0.72;
+    mat.side = THREE.DoubleSide;
+    return { geom, mat };
+  }, [gltf.scene]);
+
+  useFrame(({ clock }) => {
+    const inst = meshRef.current;
+    if (!inst) return;
+    const t = clock.elapsedTime;
+    for (let i = 0; i < BIRD_COUNT; i++) {
+      const p = birdPose(t, i, cx, cz);
+      dummy.position.set(p.x, p.y, p.z);
+      dummy.rotation.set(0, p.yaw, 0);
+      dummy.updateMatrix();
+      inst.setMatrixAt(i, dummy.matrix);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[geom, mat, BIRD_COUNT]}
+      frustumCulled={false}
+      castShadow={false}
+      receiveShadow={false}
+    />
   );
 }
 
@@ -685,6 +802,7 @@ export default function Environment() {
       <Torches />
       <DrumTower />
       <CommandTower />
+      <Birds />
     </group>
   );
 }

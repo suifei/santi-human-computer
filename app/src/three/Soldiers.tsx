@@ -17,16 +17,66 @@ import { configureQinAlbedo, firstMeshMap } from './qinHuman';
 
 const now = () => performance.now() / 1000;
 
-function placeGate(gate: Gate, i: number, columnC: boolean) {
-  const [x, z] = gate.pos;
+/**
+ * 监军台 / 鼓台占地（世界 XZ）。只改实例矩阵，不改网表 pos。
+ * 西沿盖住台阶口 x≈19–20，推出线在踏板以西。
+ */
+type TowerBox = { minX: number; maxX: number; minZ: number; maxZ: number; westX: number };
+const TOWERS: TowerBox[] = [
+  { minX: 17.2, maxX: 29.6, minZ: -20.8, maxZ: -13.2, westX: 16.55 },
+  { minX: 20.4, maxX: 29.6, minZ: 11.4, maxZ: 20.6, westX: 19.9 },
+];
+
+function netlistPitch(bits: number) {
+  return bits > 16 ? 0.72 : bits > 10 ? 0.9 : 1.0;
+}
+
+function rowKey(z: number, pitch: number) {
+  return Math.round(z / pitch) * pitch;
+}
+
+function hitsTower(x: number, z: number, b: TowerBox) {
+  return x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ;
+}
+
+/** 只向西、按 pitch 取整，保证整行仍在格子上。 */
+function snapWestDx(dx: number, pitch: number) {
+  if (dx >= -1e-6) return 0;
+  return Math.floor(dx / pitch - 1e-9) * pitch;
+}
+
+/** 一行里只要有人踩台，整行同一 dx。 */
+function rowShiftByIndex(gates: Gate[], pitch: number): Map<number, number> {
+  const rows = new Map<number, Gate[]>();
+  for (const g of gates) {
+    const k = rowKey(g.pos[1], pitch);
+    const row = rows.get(k);
+    if (row) row.push(g);
+    else rows.set(k, [g]);
+  }
+  const dxAt = new Map<number, number>();
+  for (const row of rows.values()) {
+    let dx = 0;
+    for (const b of TOWERS) {
+      if (!row.some((g) => hitsTower(g.pos[0], g.pos[1], b))) continue;
+      const rowMaxX = Math.max(...row.map((g) => g.pos[0]));
+      dx = Math.min(dx, snapWestDx(b.westX - rowMaxX, pitch));
+    }
+    if (dx === 0) continue;
+    for (const g of row) dxAt.set(g.index, dx);
+  }
+  return dxAt;
+}
+
+function placeGate(gate: Gate, columnC: boolean, dx: number) {
+  const x = gate.pos[0] + dx;
+  const z = gate.pos[1];
   let rotY = Math.PI;
   if (columnC && gate.zone === 'C') rotY = Math.PI / 2;
   if (gate.zone === 'DONE') rotY = -Math.PI / 2;
-  rotY += (Math.sin(i * 12.9898) * 43758.5453 % 1) * 0.06;
-  const s = 0.97 + ((Math.sin(i * 78.233) * 12543.7 % 1 + 1) % 1) * 0.06;
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotY);
-  m.compose(new THREE.Vector3(x, 0, z), q, new THREE.Vector3(s, s, s));
+  m.compose(new THREE.Vector3(x, 0, z), q, new THREE.Vector3(1, 1, 1));
   return m;
 }
 
@@ -44,12 +94,14 @@ function makeInstAttrs(count: number) {
 const MAX_SOLDIERS = 22000;
 const FLAG_HINGE_X = 0.42;
 
-function writeGroup(meshes: (THREE.InstancedMesh | null)[], gates: Gate[], columnC: boolean) {
+function writeGroup(meshes: (THREE.InstancedMesh | null)[], gates: Gate[], columnC: boolean, pitch: number) {
   const live = meshes.filter((m): m is THREE.InstancedMesh => m != null);
   if (!live.length || !gates.length) return false;
+  const dxAt = rowShiftByIndex(gates, pitch);
   gates.forEach((gate, i) => {
-    const m = placeGate(gate, gate.index, columnC);
-    for (const mesh of live) mesh.setMatrixAt(i, m);
+    const m = placeGate(gate, columnC, dxAt.get(gate.index) ?? 0);
+    const slot = Number.isFinite(gate.index) ? gate.index : i;
+    for (const mesh of live) mesh.setMatrixAt(slot, m);
   });
   for (const mesh of live) {
     mesh.count = gates.length;
@@ -195,7 +247,7 @@ export default function Soldiers() {
 
   const placeAll = () => {
     const meshes = [bodyRef.current, poleRef.current, flagRef.current];
-    placed.current = writeGroup(meshes, army, columnC);
+    placed.current = writeGroup(meshes, army, columnC, netlistPitch(netlist.bits));
   };
 
   useLayoutEffect(() => {

@@ -1,11 +1,18 @@
 /**
  * WebAudio 战鼓合成（home.md §6.4：osc.sine 160→55Hz 指数扫频 + 低通噪声）
- * 无外部音频资产时的合成实现。
+ * 军令 TTS：浏览器 speechSynthesis，中文 voice；无中文则静默。
  */
 
 let ctx: AudioContext | null = null;
 let muted = false;
 let noiseBuf: AudioBuffer | null = null;
+let speechTimer: ReturnType<typeof setTimeout> | null = null;
+let speakGen = 0;
+let speechUnlocked = false;
+let lastOrder = '';
+let voicesWait: Promise<void> | null = null;
+
+const SPEECH_LAG_MS = 120;
 
 function ac(): AudioContext | null {
   if (muted) return null;
@@ -79,7 +86,143 @@ export function distantDrum() {
 
 export function setMuted(m: boolean) {
   muted = m;
+  if (m) cancelOrder();
 }
 export function isMuted() {
   return muted;
+}
+
+function reducedMotion(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function synth(): SpeechSynthesis | null {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+  return window.speechSynthesis;
+}
+
+function waitVoices(s: SpeechSynthesis): Promise<void> {
+  if (s.getVoices().length) return Promise.resolve();
+  if (!voicesWait) {
+    voicesWait = new Promise((resolve) => {
+      const done = () => {
+        s.removeEventListener('voiceschanged', done);
+        resolve();
+      };
+      s.addEventListener('voiceschanged', done);
+      setTimeout(done, 1200);
+    });
+  }
+  return voicesWait;
+}
+
+/** 选 zh-TW / zh-CN；没有中文返回 null（调用方静默） */
+function pickZhVoice(s: SpeechSynthesis): SpeechSynthesisVoice | null {
+  const voices = s.getVoices();
+  const rank = (v: SpeechSynthesisVoice) => {
+    const lang = (v.lang || '').replace(/_/g, '-').toLowerCase();
+    const name = v.name || '';
+    if (lang === 'zh-tw' || lang.startsWith('zh-tw') || lang === 'cmn-hant') return 6;
+    if (lang === 'zh-cn' || lang.startsWith('zh-cn') || lang === 'cmn-hans') return 5;
+    if (/普通话|國語|Mandarin|Huihui|Yaoyao|Kangkang|Yating|Yunxi|Hanhan/i.test(name)) return 4;
+    if ((lang.startsWith('zh') || lang.startsWith('cmn')) && !lang.startsWith('zh-hk') && !lang.startsWith('zh-yue')) return 3;
+    if (lang.startsWith('zh-hk') || /Cantonese|粤|粵/.test(name)) return 1;
+    if (lang.startsWith('zh') || lang.startsWith('cmn')) return 2;
+    if (/中文|汉语|漢語|Chinese/i.test(name)) return 2;
+    return 0;
+  };
+  let best: SpeechSynthesisVoice | null = null;
+  let bestRank = 0;
+  for (const v of voices) {
+    const r = rank(v);
+    if (r > bestRank) {
+      best = v;
+      bestRank = r;
+    }
+  }
+  return best;
+}
+
+/** 在用户手势里解锁 TTS（延迟说话时仍算同一次点击） */
+export function unlockSpeech() {
+  if (muted || speechUnlocked) return;
+  const s = synth();
+  if (!s) return;
+  try {
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    s.speak(u);
+    speechUnlocked = true;
+  } catch {
+    speechUnlocked = true;
+  }
+}
+
+export function cancelOrder() {
+  speakGen += 1;
+  if (speechTimer) {
+    clearTimeout(speechTimer);
+    speechTimer = null;
+  }
+  lastOrder = '';
+  try {
+    synth()?.cancel();
+  } catch { /* 无中文 / 不支持时不抛 */ }
+}
+
+export function lastSpokenOrder() {
+  return lastOrder;
+}
+
+/**
+ * 读一条军令。新令 / 静音 / 复位会打断旧句。
+ * 默认落后鼓点 120ms；无中文 voice 则静默。
+ * interrupt:false 时排队接在当前句后（注入完成不打断注入开始）。
+ */
+export function speakOrder(text: string, opts?: { lagMs?: number; skipIfReduced?: boolean; interrupt?: boolean }) {
+  if (!text || muted) return;
+  if (opts?.skipIfReduced && reducedMotion()) return;
+  const s = synth();
+  if (!s) return;
+
+  if (opts?.interrupt !== false) cancelOrder();
+  const gen = speakGen;
+  unlockSpeech();
+  lastOrder = text;
+
+  const fire = () => {
+    if (opts?.interrupt !== false) speechTimer = null;
+    if (gen !== speakGen || muted) return;
+    void waitVoices(s).then(() => {
+      if (gen !== speakGen || muted) return;
+      const voice = pickZhVoice(s);
+      if (!voice) return;
+      try {
+        const u = new SpeechSynthesisUtterance(text);
+        u.voice = voice;
+        u.lang = voice.lang || 'zh-CN';
+        u.rate = 0.94;
+        u.pitch = 0.9;
+        u.onerror = () => { /* 静默 */ };
+        s.speak(u);
+      } catch { /* 静默 */ }
+    });
+  };
+
+  const lag = opts?.lagMs ?? SPEECH_LAG_MS;
+  if (lag <= 0) fire();
+  else if (opts?.interrupt === false) setTimeout(fire, lag);
+  else speechTimer = setTimeout(fire, lag);
+}
+
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  try {
+    window.speechSynthesis.getVoices();
+  } catch { /* ignore */ }
+  (window as unknown as {
+    __santiOrder: { last: () => string; muted: () => boolean };
+  }).__santiOrder = {
+    last: () => lastOrder,
+    muted: () => muted,
+  };
 }

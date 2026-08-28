@@ -1,7 +1,7 @@
 /** 入阵加载屏（home.md §8.1） */
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { drumHit } from '@/sim/audio';
+import { drumHit, unlockSpeech } from '@/sim/audio';
 import { DrumButton } from './common';
 import { asset } from '@/lib/utils';
 import { waitAppFonts } from '@/lib/fonts';
@@ -30,6 +30,7 @@ export default function LoadingScreen({ onEnter }: { onEnter: () => void }) {
 
   const enter = () => {
     drumHit(1, 0.8);
+    unlockSpeech();
     setLeaving(true);
     onEnter();
     setTimeout(() => setGone(true), 650);

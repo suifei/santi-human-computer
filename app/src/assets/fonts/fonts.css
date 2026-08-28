@@ -7,26 +7,8 @@
 }
 
 @font-face {
-  font-family: "QinYardXingKai";
-  src: url("./xingkai-zh.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  unicode-range: U+2E80-2EFF, U+2F00-2FDF, U+3000-303F, U+31C0-31EF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF;
-}
-
-@font-face {
-  font-family: "QinYardXingKai";
-  src: url("./xingkai-latin.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  unicode-range: U+0000-00FF, U+2010-2027, U+2030-203A;
-}
-
-@font-face {
-  font-family: "QinYardKai";
-  src: url("./wenkai-fallback.woff2") format("woff2");
+  font-family: "Qiji";
+  src: url("./qiji.woff2") format("woff2");
   font-style: normal;
   font-weight: 400;
   font-display: swap;
